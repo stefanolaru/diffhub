@@ -9,4 +9,4 @@ Includes a CloudFormation template that
 
 The Serverless framework creates a Lambda function that attempts to load the configured websites.
 
-The Lambda function is triggered via a CloudWatch rule every 5 minutes
+The Lambda function is triggered via a EventBridge event rule every 5 minutes
