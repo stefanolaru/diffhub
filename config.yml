@@ -1,0 +1,16 @@
+# notifications settings
+notifications:
+    email:
+        - olaroost+github@gmail.com
+
+# the pages to be checked
+# update the timeout of the lambda function if you have any pages
+pages:
+    # this will fail
+    - url: https://placehold.it/600x400
+      name: Placehold It
+    # this will pass
+    - url: https://crafty.ro
+      maxRedirects: 1
+    # minimum example
+    - https://google.com

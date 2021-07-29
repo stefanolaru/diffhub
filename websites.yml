@@ -1,7 +1,0 @@
-# this will fail
-placeholdit:
-    url: https://placehold.it/600x400
-# this will pass
-crafty:
-    url: https://crafty.ro
-    maxRedirects: 1
