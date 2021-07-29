@@ -20,12 +20,13 @@ functions:
     # the checker function
     check:
         handler: src/check.handler
-        memorySize: 192
+        memorySize: 128
         timeout: 30
         environment:
             DDB_LOGS_TABLE: !Ref uptimeMonitorLogsTable
             AWS_KEY: !Ref uptimeMonitorAccessKeys
             AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
+            SNS_TOPIC: !Ref uptimeMonitorSNSTopic
         events:
             - schedule: rate(5 minutes)
 
@@ -87,6 +88,7 @@ resources: # CloudFormation template syntax
                                 Action:
                                     - "ses:*"
                                     - "dynamodb:*"
+                                    - "sns:*"
                                 Resource: "*"
 
         # create the access keys for the IAM user
@@ -94,3 +96,9 @@ resources: # CloudFormation template syntax
             Type: AWS::IAM::AccessKey
             Properties:
                 UserName: !Ref uptimeMonitorUser
+
+        # create the SNS topic to receive the results
+        uptimeMonitorSNSTopic:
+            Type: AWS::SNS::Topic
+            Properties:
+                TopicName: ${self:custom.environment.sns_topic}

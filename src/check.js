@@ -8,7 +8,8 @@ AWS.config.update({
     secretAccessKey: process.env.AWS_SECRET,
 });
 
-const ddb = new AWS.DynamoDB();
+const ddb = new AWS.DynamoDB(),
+    sns = new AWS.SNS();
 
 // function handler
 exports.handler = async (event) => {
@@ -128,6 +129,19 @@ exports.handler = async (event) => {
                 console.log(err);
             });
     }
+
+    // send results to the SNS topic
+    await sns
+        .publish({
+            TopicArn: process.env.SNS_TOPIC,
+            Message: JSON.stringify(output),
+            Subject: "[uptimemonitor] Check Results",
+        })
+        .promise()
+        .then()
+        .catch((err) => {
+            console.log(err);
+        });
 
     // save output to console
     console.log(output);
