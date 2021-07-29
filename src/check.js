@@ -53,7 +53,7 @@ exports.handler = async (event) => {
             typeof page === "string" ? page : page.url ? page.url : null;
 
         // add to the promises
-        if (url) {
+        if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
             promises.push(
                 axios({
                     method: page.method || "GET",
