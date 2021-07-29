@@ -78,8 +78,7 @@ exports.handler = async (event) => {
         });
 
     // prepare the output
-    const output = [],
-        ddb_requests = [];
+    const output = [];
 
     // loop the results
     result.forEach((res, idx) => {
@@ -101,57 +100,22 @@ exports.handler = async (event) => {
 
         // update the output
         output.push(item);
-
-        // add to logs to ddb write
-        ddb_requests.push({
-            PutRequest: {
-                Item: AWS.DynamoDB.Converter.marshall(
-                    // add the created_at & expiration attributes
-                    Object.assign(item, {
-                        created_at: Math.round(+new Date() / 1000),
-                        // after 7 days
-                        expires_at:
-                            Math.round(+new Date() / 1000) + 3600 * 24 * 7,
-                    })
-                ),
-            },
-        });
     });
 
-    // write results to DynamoDB in batches
-    if (output.length) {
-        // add complete output to the DB to have future reference
-        ddb_requests.push({
-            PutRequest: {
-                Item: AWS.DynamoDB.Converter.marshall({
-                    id: "__log",
-                    output: output,
-                    created_at: Math.round(+new Date() / 1000),
-                    // after 7 days
-                    expires_at: Math.round(+new Date() / 1000) + 3600 * 24 * 7,
-                    start_time: Math.round(start_time / 1000),
-                    duration: Math.round(Date.now() - start_time),
-                    status: passed === true ? "PASS" : "FAIL",
-                }),
-            },
+    // write the logs to DynamoDB (in batches)
+    await writeLogsToDB(output, start_time, passed)
+        .then()
+        .catch((err) => {
+            console.log(err);
         });
 
-        const ddb_chunks = chunkArray(ddb_requests, 25),
-            ddb_promises = [];
-
-        ddb_chunks.forEach((chunk) => {
-            const params = { RequestItems: {} };
-            params.RequestItems[process.env.DDB_LOGS_TABLE] = chunk;
-            ddb_promises.push(ddb.batchWriteItem(params).promise());
+    await getPreviousRuns()
+        .then((res) => {
+            console.log(res);
+        })
+        .catch((err) => {
+            console.log(err);
         });
-
-        // wait for dynamodb to write results
-        await Promise.all(ddb_promises)
-            .then()
-            .catch((err) => {
-                console.log(err);
-            });
-    }
 
     // on FAIL send results to the SNS topic
     if (passed === false) {
@@ -184,3 +148,88 @@ const chunkArray = (arr, size) => {
     }
     return chunks;
 };
+
+const writeLogsToDB = async (output, start_time, passed) =>
+    new Promise((resolve, reject) => {
+        //
+        const ddb_requests = [],
+            ddb_promises = [];
+
+        // loop output and build ddb_requests
+        output.forEach((item) => {
+            // add to logs to ddb write
+            ddb_requests.push({
+                PutRequest: {
+                    Item: AWS.DynamoDB.Converter.marshall(
+                        // add the created_at & expiration attributes
+                        Object.assign(item, {
+                            created_at: Math.round(+new Date() / 1000),
+                            // after 7 days
+                            expires_at:
+                                Math.round(+new Date() / 1000) + 3600 * 24 * 7,
+                        })
+                    ),
+                },
+            });
+        });
+
+        // add complete output to the DB to have future reference
+        ddb_requests.push({
+            PutRequest: {
+                Item: AWS.DynamoDB.Converter.marshall({
+                    id: "__log",
+                    output: output,
+                    created_at: Math.round(+new Date() / 1000),
+                    // after 7 days
+                    expires_at: Math.round(+new Date() / 1000) + 3600 * 24 * 7,
+                    start_time: Math.round(start_time / 1000),
+                    duration: Math.round(Date.now() - start_time),
+                    status: passed === true ? "PASS" : "FAIL",
+                }),
+            },
+        });
+
+        const ddb_chunks = chunkArray(ddb_requests, 25);
+
+        ddb_chunks.forEach((chunk) => {
+            const params = { RequestItems: {} };
+            params.RequestItems[process.env.DDB_LOGS_TABLE] = chunk;
+            ddb_promises.push(ddb.batchWriteItem(params).promise());
+        });
+
+        // wait for dynamodb to write results
+        return Promise.all(ddb_promises)
+            .then(() => {
+                resolve(output);
+            })
+            .catch((err) => {
+                reject(err);
+            });
+    });
+
+const getPreviousRuns = async () =>
+    new Promise((resolve, reject) => {
+        ddb.query({
+            TableName: process.env.DDB_LOGS_TABLE,
+            KeyConditionExpression: "#id = :id",
+            ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall({
+                ":id": "__log",
+            }),
+            ExpressionAttributeNames: {
+                "#id": "id",
+            },
+            ScanIndexForward: false,
+            Limit: 10,
+        })
+            .promise()
+            .then((res) => {
+                var items = [];
+                if (res.Items.length) {
+                    res.Items.forEach((item) =>
+                        items.push(AWS.DynamoDB.Converter.unmarshall(item))
+                    );
+                }
+                resolve(items);
+            })
+            .catch((err) => reject(err.message));
+    });
