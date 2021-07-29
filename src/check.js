@@ -135,6 +135,9 @@ exports.handler = async (event) => {
             });
     }
 
+    // save output to console
+    console.log(output);
+
     return output;
 };
 

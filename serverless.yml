@@ -20,10 +20,10 @@ functions:
     # the checker function
     check:
         handler: src/check.handler
-        memorySize: 128
+        memorySize: 192
         timeout: 30
         environment:
-            DDB_LOGS_TABLE: ${self:custom.environment.logs_table}
+            DDB_LOGS_TABLE: !Ref uptimeMonitorLogsTable
             AWS_KEY: !Ref uptimeMonitorAccessKeys
             AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
         events:
@@ -57,15 +57,8 @@ resources: # CloudFormation template syntax
                 KeySchema:
                     - AttributeName: id
                       KeyType: HASH
-                GlobalSecondaryIndexes:
-                    - IndexName: id_created
-                      KeySchema:
-                          - AttributeName: id
-                            KeyType: HASH
-                          - AttributeName: created_at
-                            KeyType: RANGE
-                      Projection:
-                          ProjectionType: ALL
+                    - AttributeName: created_at
+                      KeyType: RANGE
                 # use the On Demand pricing
                 BillingMode: PAY_PER_REQUEST
                 # autodelete logs after specified time
