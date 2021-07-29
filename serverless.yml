@@ -20,19 +20,20 @@ functions:
     # the checker function
     check:
         handler: src/check.handler
-        memorySize: 128
+        memorySize: 256
         timeout: 30
         environment:
             DDB_LOGS_TABLE: !Ref uptimeMonitorLogsTable
             AWS_KEY: !Ref uptimeMonitorAccessKeys
             AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
             SNS_TOPIC: !Ref uptimeMonitorSNSTopic
+            SES_TEMPLATE: !Ref uptimeMonitorEmailTemplate
         events:
             - schedule: rate(5 minutes)
 
     # email recipient validator, can only be triggered directly
     validate:
-        handler: src/validate-recipients.handler
+        handler: src/validate-sender.handler
         environment:
             AWS_KEY: !Ref uptimeMonitorAccessKeys
             AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
@@ -45,6 +46,7 @@ package:
         - package-lock.json
         - README.md
         - LICENSE
+        - email/**
 
 plugins:
     - serverless-offline
@@ -102,3 +104,13 @@ resources: # CloudFormation template syntax
             Type: AWS::SNS::Topic
             Properties:
                 TopicName: ${self:custom.environment.sns_topic}
+
+        # create the SES notification template
+        uptimeMonitorEmailTemplate:
+            Type: AWS::SES::Template
+            Properties:
+                Template:
+                    TemplateName: uptimeMonitorNotificationEmail
+                    SubjectPart: "{{subject}}"
+                    TextPart: ${file(email/notification.txt)}
+                    HtmlPart: ${file(email/notification.html)}

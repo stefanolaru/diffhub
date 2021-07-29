@@ -22,21 +22,15 @@ exports.handler = async (event) => {
     }
 
     // extract the config keys
-    const recipients = config.notifications.email || [];
+    const sender = config.notifications.from;
 
     // no websites, nothing to check
-    if (!recipients.length) return false;
-
-    const output = {
-        validated: [],
-        submitted: [],
-    };
+    if (!sender) return false;
 
     // get verified emails from this account
     const verified_emails = await ses
         .listIdentities({
             IdentityType: "EmailAddress",
-            MaxItems: 1000,
         })
         .promise()
         .then((res) => res.Identities)
@@ -45,30 +39,23 @@ exports.handler = async (event) => {
             return [];
         });
 
-    // validate unverified recipients
-    const promises = [];
-    recipients.forEach((recipient) => {
-        //
-        if (verified_emails.indexOf(recipient) === -1) {
-            output.submitted.push(recipient);
-            // push to promises
-            promises.push(
-                ses
-                    .verifyEmailIdentity({
-                        EmailAddress: recipient,
-                    })
-                    .promise()
-            );
-        } else {
-            output.validated.push(recipient);
-        }
-    });
-
-    // send promises
-    await Promise.allSettled(promises)
-        .then()
-        .catch((err) => console.log(err));
+    // validate sender email
+    if (verified_emails.indexOf(sender.email) === -1) {
+        await ses
+            .verifyEmailIdentity({
+                EmailAddress: sender.email,
+            })
+            .promise()
+            .then((res) => {
+                console.log("Sent verification email: " + sender.email);
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+    } else {
+        console.log("Email already verified: " + sender.email);
+    }
 
     // return
-    return output;
+    return sender;
 };

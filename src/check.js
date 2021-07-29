@@ -9,7 +9,8 @@ AWS.config.update({
 });
 
 const ddb = new AWS.DynamoDB(),
-    sns = new AWS.SNS();
+    sns = new AWS.SNS(),
+    ses = new AWS.SES();
 
 // function handler
 exports.handler = async (event) => {
@@ -110,6 +111,55 @@ exports.handler = async (event) => {
         });
 
     await getPreviousRuns()
+        .then((res) => {
+            console.log(res);
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+
+    // extract the config keys
+    const recipients = config.notifications.email || [];
+    console.log(recipients);
+
+    // test render template
+    var params = {
+        TemplateData: "STRING_VALUE" /* required */,
+        TemplateName: "STRING_VALUE" /* required */,
+    };
+    await ses.testRenderTemplate(
+        {
+            TemplateName: process.env.SES_TEMPLATE,
+            TemplateData: JSON.stringify({
+                subject: "🚨 Test failed",
+                output: output,
+            }),
+        },
+        function (err, data) {
+            if (err) console.log(err, err.stack);
+            // an error occurred
+            else console.log(data); // successful response
+        }
+    );
+
+    // send sample email
+    await ses
+        .sendTemplatedEmail({
+            Source:
+                config.notifications.from.name +
+                " <" +
+                config.notifications.from.email +
+                ">",
+            Template: process.env.SES_TEMPLATE,
+            Destination: {
+                ToAddresses: recipients,
+            },
+            TemplateData: JSON.stringify({
+                subject: "🚨 Test failed",
+                output: output,
+            }),
+        })
+        .promise()
         .then((res) => {
             console.log(res);
         })
