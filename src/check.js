@@ -14,7 +14,9 @@ const ddb = new AWS.DynamoDB(),
 // function handler
 exports.handler = async (event) => {
     //
-    let config;
+    let config,
+        start_time = Date.now(),
+        passed = true;
     // load the websites from config
     try {
         config = yaml.load(fs.readFileSync("./config.yml", "utf8"));
@@ -92,6 +94,11 @@ exports.handler = async (event) => {
             duration: res.config.__request_duration || null, // for rejects there's no calculated duration
         };
 
+        // if any status is not 200, no longer passes
+        if (item.status != 200) {
+            passed = false;
+        }
+
         // update the output
         output.push(item);
 
@@ -111,8 +118,24 @@ exports.handler = async (event) => {
         });
     });
 
-    // write results to Dynamo in batches
-    if (ddb_requests.length) {
+    // write results to DynamoDB in batches
+    if (output.length) {
+        // add complete output to the DB to have future reference
+        ddb_requests.push({
+            PutRequest: {
+                Item: AWS.DynamoDB.Converter.marshall({
+                    id: "__log",
+                    output: output,
+                    created_at: Math.round(+new Date() / 1000),
+                    // after 7 days
+                    expires_at: Math.round(+new Date() / 1000) + 3600 * 24 * 7,
+                    start_time: Math.round(start_time / 1000),
+                    duration: Math.round(Date.now() - start_time),
+                    status: passed === true ? "PASS" : "FAIL",
+                }),
+            },
+        });
+
         const ddb_chunks = chunkArray(ddb_requests, 25),
             ddb_promises = [];
 
@@ -130,18 +153,20 @@ exports.handler = async (event) => {
             });
     }
 
-    // send results to the SNS topic
-    await sns
-        .publish({
-            TopicArn: process.env.SNS_TOPIC,
-            Message: JSON.stringify(output),
-            Subject: "[uptimemonitor] Check Results",
-        })
-        .promise()
-        .then()
-        .catch((err) => {
-            console.log(err);
-        });
+    // on FAIL send results to the SNS topic
+    if (passed === false) {
+        await sns
+            .publish({
+                TopicArn: process.env.SNS_TOPIC,
+                Message: JSON.stringify(output),
+                Subject: "[uptimemonitor] Check Results",
+            })
+            .promise()
+            .then()
+            .catch((err) => {
+                console.log(err);
+            });
+    }
 
     // save output to console
     console.log(output);
