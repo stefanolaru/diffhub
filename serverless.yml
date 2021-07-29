@@ -29,6 +29,13 @@ functions:
         events:
             - schedule: rate(5 minutes)
 
+    # email recipient validator, can only be triggered directly
+    validate:
+        handler: src/validate-recipients.handler
+        environment:
+            AWS_KEY: !Ref uptimeMonitorAccessKeys
+            AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
+
 package:
     # exclude files from the package
     exclude:

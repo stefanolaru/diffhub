@@ -6,7 +6,7 @@
     "scripts": {
         "start": "sls offline start --stage=dev",
         "build": "sls package",
-        "deploy": "sls deploy --stage=prod"
+        "deploy": "sls deploy --stage=prod && sls invoke --function validate --stage=prod"
     },
     "repository": {
         "type": "git",
