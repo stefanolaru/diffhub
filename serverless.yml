@@ -1,0 +1,96 @@
+service: uptimemonitor
+
+custom:
+    defaultStage: dev
+    environment: ${file(env.yml):${self:provider.stage}, file(env.yml):default}
+
+provider:
+    name: aws
+    # local aws profile -- to be removed
+    profile: uptimemonitor
+    # stage
+    stage: ${opt:stage, self:custom.defaultStage}
+    runtime: nodejs14.x
+    tags:
+        project: uptimemonitor
+    environment:
+        APP_NAME: ${self:custom.environment.name}
+
+functions:
+    # the checker function
+    check:
+        handler: src/check.handler
+        memorySize: 128
+        timeout: 30
+        environment:
+            DDB_LOGS_TABLE: ${self:custom.environment.logs_table}
+            AWS_KEY: !Ref uptimeMonitorAccessKeys
+            AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
+        events:
+            - schedule: rate(5 minutes)
+
+package:
+    # exclude files from the package
+    exclude:
+        - sample-env.yml
+        - package.json
+        - package-lock.json
+        - README.md
+        - LICENSE
+
+plugins:
+    - serverless-offline
+
+resources: # CloudFormation template syntax
+    Resources:
+        # the logs table
+        uptimeMonitorLogsTable:
+            Type: AWS::DynamoDB::Table
+            # DeletionPolicy: Retain
+            Properties:
+                TableName: ${self:custom.environment.logs_table}
+                AttributeDefinitions:
+                    - AttributeName: id
+                      AttributeType: S
+                    - AttributeName: created_at
+                      AttributeType: N
+                KeySchema:
+                    - AttributeName: id
+                      KeyType: HASH
+                GlobalSecondaryIndexes:
+                    - IndexName: id_created
+                      KeySchema:
+                          - AttributeName: id
+                            KeyType: HASH
+                          - AttributeName: created_at
+                            KeyType: RANGE
+                      Projection:
+                          ProjectionType: ALL
+                # use the On Demand pricing
+                BillingMode: PAY_PER_REQUEST
+                # autodelete logs after specified time
+                TimeToLiveSpecification:
+                    AttributeName: expires_at
+                    Enabled: TRUE
+
+        # create the IAM user that will be asigned to the policy
+        uptimeMonitorUser:
+            Type: AWS::IAM::User
+            Properties:
+                UserName: ${self:custom.environment.username}
+                Policies:
+                    - PolicyName: uptimeMonitorIAMPolicy
+                      PolicyDocument:
+                          Version: "2012-10-17"
+                          Statement:
+                              - Effect: "Allow"
+                                Action:
+                                    - "ses:*"
+                                    - "dynamodb:*"
+                                Resource: "*"
+
+        # create the access keys for the IAM user
+        uptimeMonitorAccessKeys:
+            Type: AWS::IAM::AccessKey
+            Properties:
+                UserName: !Ref uptimeMonitorUser

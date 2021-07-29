@@ -1,0 +1,7 @@
+prod:
+    name: "UptimeMonitor"
+    logs_table: "uptimeMonitorLogs"
+
+default:
+    name: "[DEV] UptimeMonitor"
+    logs_table: "uptimeMonitorLogs_dev"
