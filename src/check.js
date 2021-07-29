@@ -17,7 +17,7 @@ exports.handler = async (event) => {
     //
     let config,
         start_time = Date.now(),
-        passed = true;
+        pass = true;
     // load the websites from config
     try {
         config = yaml.load(fs.readFileSync("./config.yml", "utf8"));
@@ -96,7 +96,7 @@ exports.handler = async (event) => {
 
         // if any status is not 200, no longer passes
         if (item.status != 200) {
-            passed = false;
+            pass = false;
         }
 
         // update the output
@@ -104,71 +104,57 @@ exports.handler = async (event) => {
     });
 
     // write the logs to DynamoDB (in batches)
-    await writeLogsToDB(output, start_time, passed)
+    await writeLogsToDB(output, start_time, pass)
         .then()
         .catch((err) => {
             console.log(err);
         });
 
-    await getPreviousRuns()
-        .then((res) => {
-            console.log(res);
-        })
+    // get the previous runs
+    const prev_runs = await getPreviousRuns()
+        .then((res) => res)
         .catch((err) => {
             console.log(err);
+            return [];
         });
+
+    const prev = prev_runs.shift();
+    console.log(prev.pass, pass);
 
     // extract the config keys
     const recipients = config.notifications.email || [];
-    console.log(recipients);
-
-    // test render template
-    var params = {
-        TemplateData: "STRING_VALUE" /* required */,
-        TemplateName: "STRING_VALUE" /* required */,
-    };
-    await ses.testRenderTemplate(
-        {
-            TemplateName: process.env.SES_TEMPLATE,
-            TemplateData: JSON.stringify({
-                subject: "🚨 Test failed",
-                output: output,
-            }),
-        },
-        function (err, data) {
-            if (err) console.log(err, err.stack);
-            // an error occurred
-            else console.log(data); // successful response
-        }
-    );
+    // console.log(recipients);
 
     // send sample email
-    await ses
-        .sendTemplatedEmail({
-            Source:
-                config.notifications.from.name +
-                " <" +
-                config.notifications.from.email +
-                ">",
-            Template: process.env.SES_TEMPLATE,
-            Destination: {
-                ToAddresses: recipients,
-            },
-            TemplateData: JSON.stringify({
-                subject: "🚨 Test failed",
-                output: output,
-            }),
-        })
-        .promise()
-        .then((res) => {
-            console.log(res);
-        })
-        .catch((err) => {
-            console.log(err);
-        });
+    if ((prev && prev.pass !== pass) || (!prev && !pass)) {
+        await ses
+            .sendTemplatedEmail({
+                Source:
+                    config.notifications.from.name +
+                    " <" +
+                    config.notifications.from.email +
+                    ">",
+                Template: process.env.SES_TEMPLATE,
+                Destination: {
+                    ToAddresses: recipients,
+                },
+                TemplateData: JSON.stringify({
+                    subject:
+                        pass === false
+                            ? config.notifications.subject.fail
+                            : config.notifications.subject.pass,
+                    output: output,
+                }),
+            })
+            .promise()
+            .then()
+            .catch((err) => {
+                console.log(err);
+            });
+    }
 
     // on FAIL send results to the SNS topic
-    if (passed === false) {
+    if (pass === false) {
         await sns
             .publish({
                 TopicArn: process.env.SNS_TOPIC,
@@ -199,7 +185,7 @@ const chunkArray = (arr, size) => {
     return chunks;
 };
 
-const writeLogsToDB = async (output, start_time, passed) =>
+const writeLogsToDB = async (output, start_time, pass) =>
     new Promise((resolve, reject) => {
         //
         const ddb_requests = [],
@@ -234,7 +220,7 @@ const writeLogsToDB = async (output, start_time, passed) =>
                     expires_at: Math.round(+new Date() / 1000) + 3600 * 24 * 7,
                     start_time: Math.round(start_time / 1000),
                     duration: Math.round(Date.now() - start_time),
-                    status: passed === true ? "PASS" : "FAIL",
+                    pass: pass,
                 }),
             },
         });

@@ -4,6 +4,11 @@ notifications:
     from:
         name: Stefan
         email: contact@stefanolaru.com
+    # subject
+    subject:
+        fail: 🚨 Outage detected
+        pass: ✅ All is back to normal
+    # who to alert
     email:
         - olaroost@gmail.com
 
