@@ -17,6 +17,7 @@ provider:
         APP_NAME: ${self:custom.environment.name}
     apiKeys:
         - uptimeMonitorApiKey
+    logRetentionInDays: 7 # no of days to retain the Lambda logs in CloudWatch
 
 functions:
     # the checker function
