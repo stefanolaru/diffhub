@@ -14,6 +14,17 @@ const ddb = new AWS.DynamoDB(),
 
 // function handler
 exports.handler = async (event) => {
+    // prepare the response object
+    const response = {
+        statusCode: 200,
+        headers: {
+            "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+            "Access-Control-Allow-Credentials": true, // Required for cookies, authorization headers with HTTPS
+            "Access-Control-Allow-Methods": "POST,OPTIONS",
+        },
+        body: "",
+    };
+
     //
     let config,
         start_time = Date.now(),
@@ -23,14 +34,21 @@ exports.handler = async (event) => {
         config = yaml.load(fs.readFileSync("./config.yml", "utf8"));
     } catch (e) {
         console.log(e);
-        return false;
+        // return configuration error, hard error
+        response.statusCode = 400;
+        response.body = JSON.stringify({ error: "Invalid configuration." });
+        return response;
     }
 
     // extract the config keys
     const pages = config.pages;
 
     // no websites, nothing to check
-    if (!pages.length) return false;
+    if (!pages.length) {
+        // soft error
+        response.body = JSON.stringify({ error: "No pages to test." });
+        return response;
+    }
 
     // create the axios interceptors
     // add start time before request is made
@@ -68,7 +86,11 @@ exports.handler = async (event) => {
     });
 
     // if nothing to promise, something went wrong, stop here :P
-    if (!promises.length) return false;
+    if (!promises.length) {
+        // soft error
+        response.body = JSON.stringify({ error: "No URLs to test." });
+        return response;
+    }
 
     // using Promise.allSettled instead of Promise.all so it won't stop at first failure
     const result = await Promise.allSettled(promises)
@@ -121,10 +143,6 @@ exports.handler = async (event) => {
     const prev = prev_runs.shift();
     console.log(prev.pass, pass);
 
-    // extract the config keys
-    const recipients = config.notifications.email || [];
-    // console.log(recipients);
-
     // send sample email
     if ((prev && prev.pass !== pass) || (!prev && !pass)) {
         await sendEmailNotification(config, output)
@@ -134,27 +152,9 @@ exports.handler = async (event) => {
             });
     }
 
-    // on FAIL send results to the SNS topic
-    /*
-    if (pass === false) {
-        await sns
-            .publish({
-                TopicArn: process.env.SNS_TOPIC,
-                Message: JSON.stringify(output),
-                Subject: "[uptimemonitor] Check Results",
-            })
-            .promise()
-            .then()
-            .catch((err) => {
-                console.log(err);
-            });
-    }
-    */
-
-    // save output to console
-    console.log(output);
-
-    return output;
+    // return the output
+    response.body = JSON.stringify(output);
+    return response;
 };
 
 const chunkArray = (arr, size) => {

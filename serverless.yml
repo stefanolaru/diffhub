@@ -15,6 +15,8 @@ provider:
         project: uptimemonitor
     environment:
         APP_NAME: ${self:custom.environment.name}
+    apiKeys:
+        - uptimeMonitorApiKey
 
 functions:
     # the checker function
@@ -30,6 +32,11 @@ functions:
             SES_TEMPLATE: !Ref uptimeMonitorEmailTemplate
         events:
             - schedule: rate(5 minutes)
+            - http:
+                  path: /check
+                  method: POST
+                  cors: true
+                  private: true
 
     # email recipient validator, can only be triggered directly
     validate:
@@ -90,7 +97,7 @@ resources: # CloudFormation template syntax
                                 Action:
                                     - "ses:*"
                                     - "dynamodb:*"
-                                    - "sns:*"
+                                    #- "sns:*"
                                 Resource: "*"
 
         # create the access keys for the IAM user
