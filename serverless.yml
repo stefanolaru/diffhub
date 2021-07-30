@@ -32,7 +32,7 @@ functions:
             #SNS_TOPIC: !Ref uptimeMonitorSNSTopic
             SES_TEMPLATE: !Ref uptimeMonitorEmailTemplate
         events:
-            - schedule: cron(0/5 * * * ? *) # every 5 minutes
+            #- schedule: cron(0/5 * * * ? *) # every 5 minutes
             - http:
                   path: /check
                   method: POST

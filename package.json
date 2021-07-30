@@ -6,7 +6,8 @@
     "scripts": {
         "start": "sls offline start --stage=dev",
         "build": "sls package",
-        "deploy": "sls deploy --stage=prod && sls invoke --function validate --stage=prod",
+        "deploy": "sls deploy --stage=prod",
+        "remove": "sls remove --stage=prod",
         "info": "sls info -v --stage=prod"
     },
     "repository": {
@@ -28,6 +29,7 @@
     "homepage": "https://github.com/stefanolaru/uptimemonitor#readme",
     "dependencies": {
         "axios": "^0.21.1",
+        "expect": "^27.0.6",
         "js-yaml": "^4.1.0"
     },
     "devDependencies": {
