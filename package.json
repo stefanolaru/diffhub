@@ -6,7 +6,8 @@
     "scripts": {
         "start": "sls offline start --stage=dev",
         "build": "sls package",
-        "deploy": "sls deploy --stage=prod && sls invoke --function validate --stage=prod"
+        "deploy": "sls deploy --stage=prod && sls invoke --function validate --stage=prod",
+        "info": "sls info -v --stage=prod"
     },
     "repository": {
         "type": "git",
@@ -15,7 +16,9 @@
     "keywords": [
         "serverless",
         "aws",
-        "lambda"
+        "lambda",
+        "dynamodb",
+        "uptime"
     ],
     "author": "Stefan Olaru",
     "license": "MIT",
