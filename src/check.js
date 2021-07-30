@@ -1,6 +1,4 @@
 const axios = require("axios"),
-    yaml = require("js-yaml"),
-    fs = require("fs"),
     AWS = require("aws-sdk");
 
 AWS.config.update({
@@ -25,28 +23,44 @@ exports.handler = async (event) => {
         body: "",
     };
 
-    //
-    let config,
-        start_time = Date.now(),
-        pass = true;
+    // start timestamp & load configuration
+    const start_time = Date.now(),
+        config = await ddb
+            .getItem({
+                TableName: process.env.DDB_TABLE,
+                Key: AWS.DynamoDB.Converter.marshall({
+                    id: "__config",
+                    created_at: 0,
+                }),
+            })
+            .promise()
+            .then((res) => {
+                return res.Item
+                    ? AWS.DynamoDB.Converter.unmarshall(res.Item)
+                    : false;
+            })
+            .catch((err) => {
+                console.log(err);
+                return false;
+            });
+
     // load the websites from config
-    try {
-        config = yaml.load(fs.readFileSync("./config.yml", "utf8"));
-    } catch (e) {
-        console.log(e);
+    if (!config) {
         // return configuration error, hard error
         response.statusCode = 400;
-        response.body = JSON.stringify({ message: "Invalid configuration." });
+        response.body = JSON.stringify({
+            message: "Configuration could not be loaded.",
+        });
         return response;
     }
 
     // extract the config keys
-    const pages = config.pages;
+    const tests = config.tests;
 
     // no websites, nothing to check
-    if (!pages.length) {
+    if (!tests.length) {
         // soft error
-        response.body = JSON.stringify({ message: "No pages to test." });
+        response.body = JSON.stringify({ message: "No tests to load." });
         return response;
     }
 
@@ -67,19 +81,19 @@ exports.handler = async (event) => {
 
     // create the requests
     const promises = [];
-    pages.forEach((page) => {
-        const url =
-            typeof page === "string" ? page : page.url ? page.url : null;
-
+    tests.forEach((item) => {
         // add to the promises
-        if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+        if (
+            item.url &&
+            (item.url.startsWith("http://") || item.url.startsWith("https://"))
+        ) {
             promises.push(
                 axios({
-                    method: page.method || "GET",
-                    url: url,
-                    headers: page.headers || {},
-                    timeout: page.timeout || 5000, // set 5 seconds timeout
-                    maxRedirects: page.maxRedirects || 0, // don't follow the redirects
+                    method: item.method || "GET",
+                    url: item.url,
+                    headers: item.headers || {},
+                    timeout: item.timeout || 5000, // set 5 seconds timeout
+                    maxRedirects: item.maxRedirects || 0, // don't follow the redirects
                 })
             );
         }
@@ -100,11 +114,13 @@ exports.handler = async (event) => {
             return false;
         });
 
+    // if we got here, were' good
     // prepare the output
     const output = [];
+    let pass = true;
 
     // loop the results
-    result.forEach((res, idx) => {
+    result.forEach((res) => {
         // promise resolved if status === fulfilled, otherwise we find the reason
         res = res.status === "fulfilled" ? res.value : res.reason;
 
