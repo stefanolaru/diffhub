@@ -26,7 +26,7 @@ functions:
             DDB_LOGS_TABLE: !Ref uptimeMonitorLogsTable
             AWS_KEY: !Ref uptimeMonitorAccessKeys
             AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
-            SNS_TOPIC: !Ref uptimeMonitorSNSTopic
+            #SNS_TOPIC: !Ref uptimeMonitorSNSTopic
             SES_TEMPLATE: !Ref uptimeMonitorEmailTemplate
         events:
             - schedule: rate(5 minutes)
@@ -100,10 +100,10 @@ resources: # CloudFormation template syntax
                 UserName: !Ref uptimeMonitorUser
 
         # create the SNS topic to receive the results
-        uptimeMonitorSNSTopic:
-            Type: AWS::SNS::Topic
-            Properties:
-                TopicName: ${self:custom.environment.sns_topic}
+        #uptimeMonitorSNSTopic:
+        #    Type: AWS::SNS::Topic
+        #    Properties:
+        #        TopicName: ${self:custom.environment.sns_topic}
 
         # create the SES notification template
         uptimeMonitorEmailTemplate:

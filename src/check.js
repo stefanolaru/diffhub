@@ -9,7 +9,7 @@ AWS.config.update({
 });
 
 const ddb = new AWS.DynamoDB(),
-    sns = new AWS.SNS(),
+    // sns = new AWS.SNS(),
     ses = new AWS.SES();
 
 // function handler
@@ -127,26 +127,7 @@ exports.handler = async (event) => {
 
     // send sample email
     if ((prev && prev.pass !== pass) || (!prev && !pass)) {
-        await ses
-            .sendTemplatedEmail({
-                Source:
-                    config.notifications.from.name +
-                    " <" +
-                    config.notifications.from.email +
-                    ">",
-                Template: process.env.SES_TEMPLATE,
-                Destination: {
-                    ToAddresses: recipients,
-                },
-                TemplateData: JSON.stringify({
-                    subject:
-                        pass === false
-                            ? config.notifications.subject.fail
-                            : config.notifications.subject.pass,
-                    output: output,
-                }),
-            })
-            .promise()
+        await sendEmailNotification(config, output)
             .then()
             .catch((err) => {
                 console.log(err);
@@ -154,6 +135,7 @@ exports.handler = async (event) => {
     }
 
     // on FAIL send results to the SNS topic
+    /*
     if (pass === false) {
         await sns
             .publish({
@@ -167,6 +149,7 @@ exports.handler = async (event) => {
                 console.log(err);
             });
     }
+    */
 
     // save output to console
     console.log(output);
@@ -268,4 +251,39 @@ const getPreviousRuns = async () =>
                 resolve(items);
             })
             .catch((err) => reject(err.message));
+    });
+
+const sendEmailNotification = async (config, output) =>
+    new Promise((resolve, reject) => {
+        if (!config.notifications.email) {
+            return resolve(false);
+        }
+        return ses
+            .sendTemplatedEmail({
+                Source:
+                    config.notifications.from.name +
+                    " <" +
+                    config.notifications.from.email +
+                    ">",
+                Template: process.env.SES_TEMPLATE,
+                Destination: {
+                    ToAddresses: config.notifications.email,
+                },
+                TemplateData: JSON.stringify({
+                    subject:
+                        pass === false
+                            ? config.notifications.subject.fail
+                            : config.notifications.subject.pass,
+                    output: output,
+                }),
+            })
+            .promise()
+            .then((res) => {
+                resolve(true);
+            })
+            .catch((err) => {
+                // console.log(err);
+                // resolve false in case of an error
+                resolve(false);
+            });
     });
