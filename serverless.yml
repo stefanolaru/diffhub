@@ -98,7 +98,6 @@ resources: # CloudFormation template syntax
                                 Action:
                                     - "ses:*"
                                     - "dynamodb:*"
-                                    #- "sns:*"
                                 Resource: "*"
 
         # create the access keys for the IAM user
@@ -106,12 +105,6 @@ resources: # CloudFormation template syntax
             Type: AWS::IAM::AccessKey
             Properties:
                 UserName: !Ref uptimeMonitorUser
-
-        # create the SNS topic to receive the results
-        #uptimeMonitorSNSTopic:
-        #    Type: AWS::SNS::Topic
-        #    Properties:
-        #        TopicName: ${self:custom.environment.sns_topic}
 
         # create the SES notification template
         uptimeMonitorEmailTemplate:
