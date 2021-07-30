@@ -41,7 +41,9 @@ exports.handler = async (event) => {
                 })
                 .catch((err) => {
                     console.log(err);
-                    return false;
+                    return {
+                        message: "Configuration could not be loaded.",
+                    };
                 });
             break;
         // update settings
@@ -69,7 +71,9 @@ exports.handler = async (event) => {
                     })
                     .catch((err) => {
                         console.log(err);
-                        return false;
+                        return {
+                            message: "Configuration could not be saved.",
+                        };
                     });
             }
             break;

@@ -36,7 +36,7 @@ exports.handler = async (event) => {
         console.log(e);
         // return configuration error, hard error
         response.statusCode = 400;
-        response.body = JSON.stringify({ error: "Invalid configuration." });
+        response.body = JSON.stringify({ message: "Invalid configuration." });
         return response;
     }
 
@@ -46,7 +46,7 @@ exports.handler = async (event) => {
     // no websites, nothing to check
     if (!pages.length) {
         // soft error
-        response.body = JSON.stringify({ error: "No pages to test." });
+        response.body = JSON.stringify({ message: "No pages to test." });
         return response;
     }
 
@@ -88,7 +88,7 @@ exports.handler = async (event) => {
     // if nothing to promise, something went wrong, stop here :P
     if (!promises.length) {
         // soft error
-        response.body = JSON.stringify({ error: "No URLs to test." });
+        response.body = JSON.stringify({ message: "No URLs to test." });
         return response;
     }
 
