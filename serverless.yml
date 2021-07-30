@@ -26,15 +26,34 @@ functions:
         memorySize: 256
         timeout: 30
         environment:
-            DDB_LOGS_TABLE: !Ref uptimeMonitorLogsTable
+            DDB_TABLE: !Ref uptimeMonitorLogsTable
             AWS_KEY: !Ref uptimeMonitorAccessKeys
             AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
             #SNS_TOPIC: !Ref uptimeMonitorSNSTopic
             SES_TEMPLATE: !Ref uptimeMonitorEmailTemplate
         events:
-            - schedule: rate(5 minutes)
+            - schedule: cron(0/5 * * * ? *) # every 5 minutes
             - http:
                   path: /check
+                  method: POST
+                  cors: true
+                  private: true
+
+    # settings CRUD
+    settings:
+        handler: src/settings.handler
+        environment:
+            DDB_TABLE: !Ref uptimeMonitorLogsTable
+            AWS_KEY: !Ref uptimeMonitorAccessKeys
+            AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
+        events:
+            - http:
+                  path: /settings
+                  method: GET
+                  cors: true
+                  private: true
+            - http:
+                  path: /settings
                   method: POST
                   cors: true
                   private: true

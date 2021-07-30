@@ -141,6 +141,7 @@ exports.handler = async (event) => {
         });
 
     const prev = prev_runs.shift();
+    //
     console.log(prev.pass, pass);
 
     // send sample email
@@ -212,7 +213,7 @@ const writeLogsToDB = async (output, start_time, pass) =>
 
         ddb_chunks.forEach((chunk) => {
             const params = { RequestItems: {} };
-            params.RequestItems[process.env.DDB_LOGS_TABLE] = chunk;
+            params.RequestItems[process.env.DDB_TABLE] = chunk;
             ddb_promises.push(ddb.batchWriteItem(params).promise());
         });
 
@@ -229,7 +230,7 @@ const writeLogsToDB = async (output, start_time, pass) =>
 const getPreviousRuns = async () =>
     new Promise((resolve, reject) => {
         ddb.query({
-            TableName: process.env.DDB_LOGS_TABLE,
+            TableName: process.env.DDB_TABLE,
             KeyConditionExpression: "#id = :id",
             ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall({
                 ":id": "__log",
