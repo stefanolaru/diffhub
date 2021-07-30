@@ -3,6 +3,7 @@ service: uptimemonitor
 custom:
     defaultStage: dev
     environment: ${file(env.yml):${self:provider.stage}, file(env.yml):default}
+    resourceName: ${self:service}_${self:provider.stage}
 
 provider:
     name: aws
@@ -14,9 +15,9 @@ provider:
     tags:
         project: uptimemonitor
     environment:
-        APP_NAME: ${self:custom.environment.name}
+        #APP_NAME: ${self:custom.environment.name}
     apiKeys:
-        - uptimeMonitorApiKey
+        - ${self:service}_${self:provider.stage}_apikey
     logRetentionInDays: 7 # no of days to retain the Lambda logs in CloudWatch
 
 functions:
@@ -26,11 +27,11 @@ functions:
         memorySize: 256
         timeout: 30
         environment:
-            DDB_TABLE: !Ref uptimeMonitorLogsTable
-            AWS_KEY: !Ref uptimeMonitorAccessKeys
-            AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
+            DDB_TABLE: !Ref ddbTable
+            AWS_KEY: !Ref accessKeys
+            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
             #SNS_TOPIC: !Ref uptimeMonitorSNSTopic
-            SES_TEMPLATE: !Ref uptimeMonitorEmailTemplate
+            SES_TEMPLATE: !Ref emailTemplate
         events:
             #- schedule: cron(0/5 * * * ? *) # every 5 minutes
             - http:
@@ -43,9 +44,9 @@ functions:
     settings:
         handler: src/settings.handler
         environment:
-            DDB_TABLE: !Ref uptimeMonitorLogsTable
-            AWS_KEY: !Ref uptimeMonitorAccessKeys
-            AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
+            DDB_TABLE: !Ref ddbTable
+            AWS_KEY: !Ref accessKeys
+            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
         events:
             - http:
                   path: /settings
@@ -62,8 +63,8 @@ functions:
     validate:
         handler: src/validate-sender.handler
         environment:
-            AWS_KEY: !Ref uptimeMonitorAccessKeys
-            AWS_SECRET: !GetAtt uptimeMonitorAccessKeys.SecretAccessKey
+            AWS_KEY: !Ref accessKeys
+            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
 
 package:
     # exclude files from the package
@@ -81,11 +82,11 @@ plugins:
 resources: # CloudFormation template syntax
     Resources:
         # the logs table
-        uptimeMonitorLogsTable:
+        ddbTable:
             Type: AWS::DynamoDB::Table
             # DeletionPolicy: Retain
             Properties:
-                TableName: ${self:custom.environment.logs_table}
+                TableName: ${self:custom.resourceName}
                 AttributeDefinitions:
                     - AttributeName: id
                       AttributeType: S
@@ -104,12 +105,12 @@ resources: # CloudFormation template syntax
                     Enabled: TRUE
 
         # create the IAM user that will be asigned to the policy
-        uptimeMonitorUser:
+        iamUser:
             Type: AWS::IAM::User
             Properties:
-                UserName: ${self:custom.environment.username}
+                UserName: ${self:custom.resourceName}
                 Policies:
-                    - PolicyName: uptimeMonitorIAMPolicy
+                    - PolicyName: ${self:custom.resourceName}_IAM_policy
                       PolicyDocument:
                           Version: "2012-10-17"
                           Statement:
@@ -120,17 +121,17 @@ resources: # CloudFormation template syntax
                                 Resource: "*"
 
         # create the access keys for the IAM user
-        uptimeMonitorAccessKeys:
+        accessKeys:
             Type: AWS::IAM::AccessKey
             Properties:
-                UserName: !Ref uptimeMonitorUser
+                UserName: !Ref iamUser
 
         # create the SES notification template
-        uptimeMonitorEmailTemplate:
+        emailTemplate:
             Type: AWS::SES::Template
             Properties:
                 Template:
-                    TemplateName: uptimeMonitorNotificationEmail
+                    TemplateName: ${self:custom.resourceName}_email_template
                     SubjectPart: "{{subject}}"
                     TextPart: ${file(email/notification.txt)}
                     HtmlPart: ${file(email/notification.html)}

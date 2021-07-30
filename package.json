@@ -4,11 +4,8 @@
     "description": "Deploy a free uptime monitoring service using Serverless",
     "main": "index.js",
     "scripts": {
-        "start": "sls offline start --stage=dev",
-        "build": "sls package",
-        "deploy": "sls deploy --stage=prod",
-        "remove": "sls remove --stage=prod",
-        "info": "sls info -v --stage=prod"
+        "start": "sls offline --apiKey=local --stage=dev",
+        "deploy": "sls deploy --stage=prod"
     },
     "repository": {
         "type": "git",
