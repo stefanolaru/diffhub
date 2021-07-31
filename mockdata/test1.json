@@ -1,0 +1,28 @@
+{
+    "type": "basic",
+    "name": "Test 1",
+    "steps": [
+        {
+            "action": "navigate",
+            "config": {
+                "url": "https://crafty.ro",
+                "maxRedirects": 1
+            }
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "matcher": ["status", "toBe", 200]
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "matcher": ["headers", "toBeDefined"]
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "matcher": ["headers.content-type", "toContain", "application/html"]
+        }
+    ]
+}
