@@ -28,6 +28,11 @@
             "action": "expect",
             "context": "response",
             "matcher": ["data", "toContain", "theLoginModal"]
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "matcher": ["duration", "toBeLessThan", 2000]
         }
     ]
 }

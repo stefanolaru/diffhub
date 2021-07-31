@@ -83,8 +83,7 @@ class basicRunner {
             });
             // add end time & duration on response
             axios.interceptors.response.use((response) => {
-                response.config["__end_time"] = Date.now();
-                response.config["__request_duration"] =
+                response["duration"] =
                     Date.now() - response.config.__start_time;
                 return response;
             });
@@ -133,6 +132,7 @@ class basicRunner {
                 // resolve
                 resolve();
             } catch (e) {
+                // console.log(e.message);
                 // reject
                 reject(e.message);
             }
