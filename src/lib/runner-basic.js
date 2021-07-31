@@ -73,7 +73,7 @@ class basicRunner {
         // instantiate request response
         this.response = null;
     }
-    //
+    // axios makes the http request
     async navigate(step) {
         return new Promise((resolve) => {
             // create the axios interceptors
@@ -101,21 +101,20 @@ class basicRunner {
                 .then((res) => {
                     // populate the response
                     this.response = res;
-                    // resolve anyway
                     resolve();
                 })
                 .catch((err) => {
                     // populate the response
                     this.response = err;
-                    // resolve even if error
+                    // resolve anyway, assertions will do the rest
                     resolve();
                 });
         });
     }
-
+    // Jest expect handles the assertions
     async expect(step) {
         return new Promise((resolve, reject) => {
-            // get expect components
+            // destructure assertion components
             let [subject, matcher, value] = step.matcher;
 
             // if no subject or matcher, ignore assertion, resolve early
@@ -138,7 +137,6 @@ class basicRunner {
                 // resolve
                 resolve();
             } catch (e) {
-                console.log(e.message);
                 // reject
                 reject(e.message);
             }
