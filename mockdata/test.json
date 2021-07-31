@@ -22,7 +22,12 @@
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["headers.content-type", "toContain", "application/html"]
+            "matcher": ["headers.content-type", "toContain", "text/html"]
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "matcher": ["data", "toContain", "theLoginModal"]
         }
     ]
 }

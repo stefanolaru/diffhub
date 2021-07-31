@@ -1,16 +1,18 @@
 const axios = require("axios"),
-    expect = require("expect");
+    expect = require("expect"),
+    uuid = require("uuid/v4");
 
 module.exports.run = async (steps) => {
     // prepare the output
     const output = {
+        id: uuid(), // unique id for the test run
         start_time: Date.now(),
         pass: true, // assume it will pass
         steps: [],
     };
 
     // instantiate the test runner
-    const runner = new basicTest();
+    const runner = new basicRunner();
 
     // loop test steps
     while (steps.length) {
@@ -32,16 +34,19 @@ module.exports.run = async (steps) => {
                             pass: false,
                         })
                     );
+                    // log the err for the CloudWatch logs
+                    console.log(err);
                     // update the output with the overall status
                     Object.assign(output, {
                         pass: false,
-                        error: err,
                     });
                 });
         } catch (e) {
+            // log the err for the CloudWatch logs
+            console.log(e);
+            // update the output with the overall status
             Object.assign(output, {
                 pass: false,
-                error: e.message,
             });
         }
         // stop at first test failure, break the loop
@@ -61,7 +66,7 @@ module.exports.run = async (steps) => {
         : Promise.reject(output);
 };
 
-class basicTest {
+class basicRunner {
     // constructor
     constructor() {
         // instantiate request response

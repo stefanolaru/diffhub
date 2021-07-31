@@ -1,5 +1,5 @@
-const runner = require("./lib/run-basic"),
-    mock = require("../mockdata/test1.json");
+const runner = require("./lib/runner-basic"),
+    mock = require("../mockdata/test.json");
 
 exports.handler = async (event) => {
     await runner
