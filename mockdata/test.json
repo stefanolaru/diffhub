@@ -17,11 +17,6 @@
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["headers", "toBeDefined"]
-        },
-        {
-            "action": "expect",
-            "context": "response",
             "matcher": ["headers.content-type", "toContain", "text/html"]
         },
         {
@@ -33,6 +28,18 @@
             "action": "expect",
             "context": "response",
             "matcher": ["duration", "toBeLessThan", 2000]
+        },
+        {
+            "action": "navigate",
+            "config": {
+                "url": "https://crafty.ro/login",
+                "maxRedirects": 1
+            }
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "matcher": ["data", "not.toContain", "Page not found."]
         }
     ]
 }

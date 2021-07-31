@@ -128,11 +128,16 @@ class basicRunner {
 
             // run the Jest test
             try {
-                expect(subject)[matcher](value);
+                // check for negation
+                if (matcher.startsWith("not.")) {
+                    expect(subject).not[matcher.replace("not.", "")](value);
+                } else {
+                    expect(subject)[matcher](value);
+                }
                 // resolve
                 resolve();
             } catch (e) {
-                // console.log(e.message);
+                console.log(e.message);
                 // reject
                 reject(e.message);
             }
