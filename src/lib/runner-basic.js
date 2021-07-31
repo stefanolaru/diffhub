@@ -17,6 +17,7 @@ module.exports.run = async (steps) => {
     // loop test steps
     while (steps.length) {
         const step = steps.shift();
+        console.log(step);
         try {
             await runner[step.action](step)
                 .then(() => {

@@ -5,8 +5,7 @@
         {
             "action": "navigate",
             "config": {
-                "url": "https://crafty.ro",
-                "maxRedirects": 1
+                "url": "{{base_url}}"
             }
         },
         {
@@ -32,14 +31,25 @@
         {
             "action": "navigate",
             "config": {
-                "url": "https://crafty.ro/login",
-                "maxRedirects": 1
+                "url": "{{base_url}}/login",
+                "method": "post",
+                "data": {
+                    "User": {
+                        "username": "{{username}}",
+                        "password": "{{password}}"
+                    }
+                }
             }
         },
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["data", "not.toContain", "Page not found."]
+            "matcher": ["data", "not.toContain", "error_message"]
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "matcher": ["data", "not.toContain", "loginForm"]
         }
     ]
 }
