@@ -21,11 +21,12 @@ provider:
     logRetentionInDays: 7 # no of days to retain the Lambda logs in CloudWatch
 
 functions:
-    # temp function for testing purposes
+    # run basic test, can only be invoked directly
     runbasic:
-        memorySize: 256
+        memorySize: 128
         timeout: 60
         handler: src/run-basic.handler
+    # run browser test, can only be invoked directly
     runbrowser:
         memorySize: 1024
         timeout: 120 # browser tests can take longer

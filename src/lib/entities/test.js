@@ -57,6 +57,31 @@ module.exports.create = async (data) => {
     });
 };
 
+/**
+ * Test delete
+ * requires test ID
+ * returns true or error
+ */
+
+module.exports.delete = async (id) => {
+    return new Promise((resolve, reject) => {
+        ddb.deleteItem({
+            TableName: process.env.DDB_TABLE,
+            Key: AWS.DynamoDB.Converter.marshall({ entity: "test", id: id }),
+        })
+            .promise()
+            .then(() => {
+                // delete the event rule / needs to be reviewed
+                return removeEventRule(id);
+            })
+            .then(() => resolve(true))
+            .catch((err) => reject(err.message));
+    });
+};
+
+/**
+ *  Creates EventBridge rule for scheduled runs
+ */
 const createEventRule = async (data) =>
     new Promise((resolve, reject) => {
         eb.putRule({
@@ -99,12 +124,46 @@ const createEventRule = async (data) =>
                     })
                     .promise();
             })
-            .then(() => {
-                resolve();
-            })
-            .catch((err) => {
-                reject(err);
-            });
+            .then(() => resolve())
+            .catch((err) => reject(err));
     });
 
-const removeEventRule = async (id) => new Promise((resolve, reject) => {});
+/**
+ *  Removes the EventBridge rule (incl Targets)
+ */
+const removeEventRule = async (id) =>
+    new Promise((resolve, reject) => {
+        // get targets first
+        eb.listTargetsByRule({
+            Rule: process.env.RESOURCE_PREFIX + "_" + id,
+        })
+            .promise()
+            .then((res) => {
+                if (res.Targets && res.Targets.length) {
+                    // delete targets
+                    return eb
+                        .removeTargets({
+                            Ids: res.Targets.map((item) => item.Id),
+                            Rule: process.env.RESOURCE_PREFIX + "_" + id,
+                        })
+                        .promise();
+                } else {
+                    // just resolve
+                    return Promise.resolve(true);
+                }
+            })
+            // delete the rule
+            .then(() =>
+                eb
+                    .deleteRule({
+                        Name: process.env.RESOURCE_PREFIX + "_" + id,
+                    })
+                    .promise()
+            )
+            .then(() => resolve())
+            .catch((err) => {
+                // resolve anyway
+                console.log(err);
+                resolve();
+            });
+    });

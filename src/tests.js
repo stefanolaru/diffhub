@@ -62,16 +62,16 @@ exports.handler = async (event) => {
         //         });
         //     break;
 
-        // case "DELETE":
-        //     await Project.delete(event.pathParameters.id)
-        //         .then((res) => {
-        //             response.body = res;
-        //         })
-        //         .catch((err) => {
-        //             response.statusCode = 400;
-        //             response.body = { message: err };
-        //         });
-        //     break;
+        case "DELETE":
+            await Test.delete(event.pathParameters.id)
+                .then((res) => {
+                    response.body = res;
+                })
+                .catch((err) => {
+                    response.statusCode = 400;
+                    response.body = { message: err };
+                });
+            break;
     }
 
     // output the results
