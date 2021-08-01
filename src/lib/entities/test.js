@@ -111,6 +111,31 @@ module.exports.delete = async (item) => {
 };
 
 /**
+ * Replace placeholders with project variables
+ * requires test data & project variables
+ * returns test data
+ */
+module.exports.replaceVars = (data, vars) => {
+    // if no vars, return early
+    if (Object.keys(vars).length) return data;
+
+    // stringify data
+    data = JSON.stringify(data);
+
+    // replace variables from steps
+    data = data.replace(new RegExp(/\{{(.*?)}}/gm), (x, y) => {
+        // has env variable, replace it
+        if (typeof vars[y] !== "undefined") {
+            return vars[y];
+        }
+        // doesn't have a variable, return the exact string as populated
+        return x;
+    });
+
+    return data;
+};
+
+/**
  *  Creates EventBridge rule for scheduled runs
  */
 const createEventRule = async (data) =>
