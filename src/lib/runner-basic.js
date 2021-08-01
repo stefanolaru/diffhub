@@ -1,6 +1,6 @@
 const axios = require("axios"),
     expect = require("expect"),
-    uuid = require("uuid/v4");
+    { v4: uuid } = require("uuid");
 
 module.exports.run = async (steps) => {
     // prepare the output
