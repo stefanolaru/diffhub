@@ -6,8 +6,7 @@ AWS.config.update({
     secretAccessKey: process.env.AWS_SECRET,
 });
 
-const ddb = new AWS.DynamoDB(),
-    eb = new AWS.EventBridge();
+const ddb = new AWS.DynamoDB();
 
 /**
  * 	Project Get

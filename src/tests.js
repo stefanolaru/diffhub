@@ -63,7 +63,12 @@ exports.handler = async (event) => {
         //     break;
 
         case "DELETE":
-            await Test.delete(event.pathParameters.id)
+            await Test.get(event.pathParameters.id)
+                .then((item) => {
+                    return item.id
+                        ? Test.delete(item)
+                        : Promise.reject("Test not found.");
+                })
                 .then((res) => {
                     response.body = res;
                 })

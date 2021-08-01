@@ -58,21 +58,52 @@ module.exports.create = async (data) => {
 };
 
 /**
+ * 	Test Get
+ * 	retrieve the project data from DB
+ */
+
+module.exports.get = async (id) => {
+    return new Promise((resolve, reject) => {
+        ddb.getItem({
+            TableName: process.env.DDB_TABLE,
+            Key: AWS.DynamoDB.Converter.marshall({
+                entity: "test",
+                id: id,
+            }),
+        })
+            .promise()
+            .then((res) => {
+                if (res.Item) {
+                    let item = AWS.DynamoDB.Converter.unmarshall(res.Item);
+                    resolve(item);
+                }
+
+                // reject if no project was found
+                reject("Test not found.");
+            })
+            .catch((err) => reject(err.message));
+    });
+};
+
+/**
  * Test delete
- * requires test ID
+ * requires test object
  * returns true or error
  */
 
-module.exports.delete = async (id) => {
+module.exports.delete = async (item) => {
     return new Promise((resolve, reject) => {
         ddb.deleteItem({
             TableName: process.env.DDB_TABLE,
-            Key: AWS.DynamoDB.Converter.marshall({ entity: "test", id: id }),
+            Key: AWS.DynamoDB.Converter.marshall({
+                entity: "test",
+                id: item.id,
+            }),
         })
             .promise()
             .then(() => {
                 // delete the event rule / needs to be reviewed
-                return removeEventRule(id);
+                return removeEventRule(item);
             })
             .then(() => resolve(true))
             .catch((err) => reject(err.message));
@@ -115,9 +146,9 @@ const createEventRule = async (data) =>
                                     data.type === "basic"
                                         ? process.env.LAMBDA_BASIC
                                         : process.env.LAMBDA_BROWSER,
-                                // RoleArn: process.env.IAM_ROLE,
+                                // pass test_id to the target
                                 Input: JSON.stringify({
-                                    test: "me",
+                                    test_id: data.id,
                                 }),
                             },
                         ],
@@ -131,11 +162,11 @@ const createEventRule = async (data) =>
 /**
  *  Removes the EventBridge rule (incl Targets)
  */
-const removeEventRule = async (id) =>
+const removeEventRule = async (data) =>
     new Promise((resolve, reject) => {
         // get targets first
         eb.listTargetsByRule({
-            Rule: process.env.RESOURCE_PREFIX + "_" + id,
+            Rule: process.env.RESOURCE_PREFIX + "_" + data.id,
         })
             .promise()
             .then((res) => {
@@ -144,7 +175,7 @@ const removeEventRule = async (id) =>
                     return eb
                         .removeTargets({
                             Ids: res.Targets.map((item) => item.Id),
-                            Rule: process.env.RESOURCE_PREFIX + "_" + id,
+                            Rule: process.env.RESOURCE_PREFIX + "_" + data.id,
                         })
                         .promise();
                 } else {
@@ -152,11 +183,22 @@ const removeEventRule = async (id) =>
                     return Promise.resolve(true);
                 }
             })
+            .then(() => {
+                return lambda
+                    .removePermission({
+                        FunctionName:
+                            data.type === "basic"
+                                ? process.env.LAMBDA_BASIC
+                                : process.env.LAMBDA_BROWSER,
+                        StatementId: "Lambda_" + data.type + "_" + data.id,
+                    })
+                    .promise();
+            })
             // delete the rule
             .then(() =>
                 eb
                     .deleteRule({
-                        Name: process.env.RESOURCE_PREFIX + "_" + id,
+                        Name: process.env.RESOURCE_PREFIX + "_" + data.id,
                     })
                     .promise()
             )
