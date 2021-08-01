@@ -7,7 +7,8 @@ AWS.config.update({
 });
 
 const ddb = new AWS.DynamoDB(),
-    eb = new AWS.EventBridge();
+    eb = new AWS.EventBridge(),
+    lambda = new AWS.Lambda();
 
 /**
  *  Test Create - requires project_id
@@ -20,6 +21,7 @@ module.exports.create = async (data) => {
             entity: "test",
             id: uuid(),
             name: data.name || "Unnamed test",
+            type: data.type || "basic",
             project_id: data.project_id || null,
             created_at: Math.floor(+new Date() / 1000),
             trigger: data.trigger || "manual",
@@ -41,36 +43,9 @@ module.exports.create = async (data) => {
             .then(() => {
                 // create the event rule for scheduled tests
                 if (data.trigger === "scheduled" && data.schedule) {
-                    return eb
-                        .putRule({
-                            Name: "uptimemonitor_" + data.id,
-                            ScheduleExpression: data.schedule,
-                            State: "ENABLED",
-                        })
-                        .promise();
+                    return createEventRule(data);
                 } else {
                     // just return an empty promise
-                    return Promise.resolve(false);
-                }
-            })
-            .then((res) => {
-                if (res.RuleArn) {
-                    // add rule Targets
-                    return eb
-                        .putTargets({
-                            Rule: "uptimemonitor_" + data.id,
-                            Targets: [
-                                {
-                                    Id: "TempLamba",
-                                    Arn: process.env.LAMBDA_ARN,
-                                    Input: JSON.stringify({
-                                        test: "me",
-                                    }),
-                                },
-                            ],
-                        })
-                        .promise();
-                } else {
                     return Promise.resolve(false);
                 }
             })
@@ -81,3 +56,55 @@ module.exports.create = async (data) => {
             });
     });
 };
+
+const createEventRule = async (data) =>
+    new Promise((resolve, reject) => {
+        eb.putRule({
+            Name: process.env.RESOURCE_PREFIX + "_" + data.id,
+            ScheduleExpression: data.schedule,
+            State: "ENABLED",
+        })
+            .promise()
+            .then((res) => {
+                return lambda
+                    .addPermission({
+                        Action: "lambda:InvokeFunction",
+                        FunctionName:
+                            data.type === "basic"
+                                ? process.env.LAMBDA_BASIC
+                                : process.env.LAMBDA_BROWSER,
+                        StatementId: "Lambda_" + data.type + "_" + data.id,
+                        Principal: "events.amazonaws.com",
+                        SourceArn: res.RuleArn,
+                    })
+                    .promise();
+            })
+            .then((res) => {
+                return eb
+                    .putTargets({
+                        Rule: process.env.RESOURCE_PREFIX + "_" + data.id,
+                        Targets: [
+                            {
+                                Id: "Lambda_" + data.type,
+                                Arn:
+                                    data.type === "basic"
+                                        ? process.env.LAMBDA_BASIC
+                                        : process.env.LAMBDA_BROWSER,
+                                // RoleArn: process.env.IAM_ROLE,
+                                Input: JSON.stringify({
+                                    test: "me",
+                                }),
+                            },
+                        ],
+                    })
+                    .promise();
+            })
+            .then(() => {
+                resolve();
+            })
+            .catch((err) => {
+                reject(err);
+            });
+    });
+
+const removeEventRule = async (id) => new Promise((resolve, reject) => {});

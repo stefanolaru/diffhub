@@ -15,13 +15,23 @@ provider:
     tags:
         project: uptimemonitor
     environment:
-        #APP_NAME: ${self:custom.environment.name}
+        RESOURCE_PREFIX: ${self:custom.resourceName}
     apiKeys:
         - ${self:service}_${self:provider.stage}_apikey
     logRetentionInDays: 7 # no of days to retain the Lambda logs in CloudWatch
 
 functions:
+    # temp function for testing purposes
+    runbasic:
+        memorySize: 256
+        timeout: 60
+        handler: src/run-basic.handler
+    runbrowser:
+        memorySize: 1024
+        timeout: 120 # browser tests can take longer
+        handler: src/run-browser.handler
     # the checker function
+    # old checker, to be removed
     check:
         handler: src/check.handler
         memorySize: 256
@@ -41,6 +51,7 @@ functions:
                   private: true
 
     # settings CRUD
+    # no longer needed - to be removed
     settings:
         handler: src/settings.handler
         environment:
@@ -107,10 +118,11 @@ functions:
         timeout: 10
         environment:
             DDB_TABLE: !Ref ddbTable
-            # note the normalized function name + LambdaFunction suffix
-            LAMBDA_ARN: { Fn::GetAtt: [TempLambdaFunction, Arn] }
             AWS_KEY: !Ref accessKeys
             AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
+            # note the normalized function name + LambdaFunction suffix
+            LAMBDA_BASIC: { Fn::GetAtt: [RunbasicLambdaFunction, Arn] }
+            LAMBDA_BROWSER: { Fn::GetAtt: [RunbrowserLambdaFunction, Arn] }
         events:
             # create
             - http:
@@ -143,13 +155,9 @@ functions:
     #     environment:
     #         AWS_KEY: !Ref accessKeys
     #         AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
-
+    # temporary function
     runtest:
         handler: src/runtest.handler
-
-    # temp function for testing purposes
-    temp:
-        handler: src/temp.handler
 
 package:
     # exclude files from the package
@@ -205,6 +213,7 @@ resources: # CloudFormation template syntax
                                     - "ses:*"
                                     - "dynamodb:*"
                                     - "events:*"
+                                    - "lambda:*"
                                 Resource: "*"
 
         # create the access keys for the IAM user
