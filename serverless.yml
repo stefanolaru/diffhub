@@ -21,6 +21,24 @@ provider:
     logRetentionInDays: 7 # no of days to retain the Lambda logs in CloudWatch
 
 functions:
+    # trigger test on schedule or manually
+    trigger:
+        memorySize: 128
+        timeout: 30
+        handler: src/trigger.handler
+        environment:
+            DDB_TABLE: !Ref ddbTable
+            AWS_KEY: !Ref accessKeys
+            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
+            # note the normalized function name + LambdaFunction suffix
+            LAMBDA_BASIC: { Fn::GetAtt: [RunbasicLambdaFunction, Arn] }
+            LAMBDA_BROWSER: { Fn::GetAtt: [RunbrowserLambdaFunction, Arn] }
+        events:
+            - http:
+                  path: /run/{id+}
+                  method: GET
+                  cors: true
+                  private: true
     # run basic test, can only be invoked directly
     runbasic:
         memorySize: 128
@@ -96,8 +114,7 @@ functions:
             AWS_KEY: !Ref accessKeys
             AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
             # note the normalized function name + LambdaFunction suffix
-            LAMBDA_BASIC: { Fn::GetAtt: [RunbasicLambdaFunction, Arn] }
-            LAMBDA_BROWSER: { Fn::GetAtt: [RunbrowserLambdaFunction, Arn] }
+            LAMBDA_TRIGGER: { Fn::GetAtt: [TriggerLambdaFunction, Arn] }
         events:
             # create
             - http:

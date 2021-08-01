@@ -1,34 +1,16 @@
 const Test = require("./lib/entities/test"),
+    Log = require("./lib/entities/log"),
     runner = require("./lib/runner-basic");
 
-// temp function
+// basic test function
+// we assume what got here was previously checked by the triggering function
 exports.handler = async (event) => {
     //
-    console.log("Basic test run.");
-    // no test id, stop
-    if (!event.test_id) return false;
+    console.log("Basic test run.", event);
 
-    // get the test from the DB
-    const test = await Test.get(event.test_id)
-        .then((res) => res)
-        .catch((err) => {
-            console.log(err);
-            return false;
-        });
+    // update log
 
-    // if no test, stop
-    if (!test) return false;
+    // console.log(results);
 
-    // great we have a test to run
-    const results = await runner
-        .run(test.steps)
-        .then((res) => res)
-        .catch((err) => {
-            console.log(err);
-            return false;
-        });
-
-    console.log(results);
-
-    return true;
+    return log;
 };

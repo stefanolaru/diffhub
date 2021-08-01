@@ -136,6 +136,26 @@ module.exports.replaceVars = (data, vars) => {
 };
 
 /**
+ * Test run
+ * requires test data & log
+ */
+
+module.exports.run = (data, log) =>
+    lambda
+        .invoke({
+            FunctionName:
+                data.type === "browser"
+                    ? process.env.LAMBDA_BROWSER
+                    : process.env.LAMBDA_BASIC,
+            InvocationType: "Event",
+            Payload: JSON.stringify({
+                data: data,
+                log: log,
+            }),
+        })
+        .promise();
+
+/**
  *  Creates EventBridge rule for scheduled runs
  */
 const createEventRule = async (data) =>
@@ -150,10 +170,7 @@ const createEventRule = async (data) =>
                 return lambda
                     .addPermission({
                         Action: "lambda:InvokeFunction",
-                        FunctionName:
-                            data.type === "basic"
-                                ? process.env.LAMBDA_BASIC
-                                : process.env.LAMBDA_BROWSER,
+                        FunctionName: process.env.LAMBDA_TRIGGER,
                         StatementId: "Lambda_" + data.type + "_" + data.id,
                         Principal: "events.amazonaws.com",
                         SourceArn: res.RuleArn,
@@ -167,13 +184,11 @@ const createEventRule = async (data) =>
                         Targets: [
                             {
                                 Id: "Lambda_" + data.type,
-                                Arn:
-                                    data.type === "basic"
-                                        ? process.env.LAMBDA_BASIC
-                                        : process.env.LAMBDA_BROWSER,
+                                Arn: process.env.LAMBDA_TRIGGER,
                                 // pass test_id to the target
                                 Input: JSON.stringify({
                                     test_id: data.id,
+                                    trigger: "schedule",
                                 }),
                             },
                         ],
@@ -211,10 +226,7 @@ const removeEventRule = async (data) =>
             .then(() => {
                 return lambda
                     .removePermission({
-                        FunctionName:
-                            data.type === "basic"
-                                ? process.env.LAMBDA_BASIC
-                                : process.env.LAMBDA_BROWSER,
+                        FunctionName: process.env.LAMBDA_TRIGGER,
                         StatementId: "Lambda_" + data.type + "_" + data.id,
                     })
                     .promise();
