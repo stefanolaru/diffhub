@@ -26,51 +26,25 @@ functions:
         memorySize: 128
         timeout: 60
         handler: src/run-basic.handler
+        environment:
+            DDB_TABLE: !Ref ddbTable
+            AWS_KEY: !Ref accessKeys
+            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
+            SES_TEMPLATE: !Ref emailTemplate
     # run browser test, can only be invoked directly
     runbrowser:
         memorySize: 1024
         timeout: 120 # browser tests can take longer
         handler: src/run-browser.handler
-    # the checker function
-    # old checker, to be removed
-    check:
-        handler: src/check.handler
-        memorySize: 256
-        timeout: 30
         environment:
             DDB_TABLE: !Ref ddbTable
             AWS_KEY: !Ref accessKeys
             AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
-            #SNS_TOPIC: !Ref uptimeMonitorSNSTopic
             SES_TEMPLATE: !Ref emailTemplate
-        events:
-            #- schedule: cron(0/5 * * * ? *) # every 5 minutes
-            - http:
-                  path: /check
-                  method: POST
-                  cors: true
-                  private: true
 
-    # settings CRUD
-    # no longer needed - to be removed
-    settings:
-        handler: src/settings.handler
-        environment:
-            DDB_TABLE: !Ref ddbTable
-            AWS_KEY: !Ref accessKeys
-            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
-        events:
-            - http:
-                  path: /settings
-                  method: GET
-                  cors: true
-                  private: true
-            - http:
-                  path: /settings
-                  method: POST
-                  cors: true
-                  private: true
-
+    # run a test manually
+    #
+    #
     # projects CRUD
     projects:
         handler: src/projects.handler
