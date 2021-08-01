@@ -59,12 +59,97 @@ functions:
                   cors: true
                   private: true
 
-    # email recipient validator, can only be triggered directly
-    validate:
-        handler: src/validate-sender.handler
+    # projects CRUD
+    projects:
+        handler: src/projects.handler
+        memorySize: 128
+        timeout: 10
         environment:
+            DDB_TABLE: !Ref ddbTable
             AWS_KEY: !Ref accessKeys
             AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
+        events:
+            # create
+            - http:
+                  path: /projects
+                  method: POST
+                  cors: true
+                  private: true
+            # update
+            - http:
+                  path: /projects/{id+}
+                  method: PATCH
+                  cors: true
+                  private: true
+            # list
+            - http:
+                  path: /projects
+                  method: GET
+                  cors: true
+                  private: true
+            # view
+            - http:
+                  path: /projects/{id+}
+                  method: GET
+                  cors: true
+                  private: true
+            # delete
+            - http:
+                  path: /projects/{id+}
+                  method: DELETE
+                  cors: true
+                  private: true
+
+    # tests CRUD
+    tests:
+        handler: src/tests.handler
+        memorySize: 128
+        timeout: 10
+        environment:
+            DDB_TABLE: !Ref ddbTable
+            # note the normalized function name + LambdaFunction suffix
+            LAMBDA_ARN: { Fn::GetAtt: [TempLambdaFunction, Arn] }
+            AWS_KEY: !Ref accessKeys
+            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
+        events:
+            # create
+            - http:
+                  path: /tests
+                  method: POST
+                  cors: true
+                  private: true
+            # update
+            - http:
+                  path: /tests/{id+}
+                  method: PATCH
+                  cors: true
+                  private: true
+            # view
+            - http:
+                  path: /tests/{id+}
+                  method: GET
+                  cors: true
+                  private: true
+            # delete
+            - http:
+                  path: /tests/{id+}
+                  method: DELETE
+                  cors: true
+                  private: true
+
+    # email recipient validator, can only be triggered directly
+    # validate:
+    #     handler: src/validate-sender.handler
+    #     environment:
+    #         AWS_KEY: !Ref accessKeys
+    #         AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
+
+    runtest:
+        handler: src/runtest.handler
+
+    # temp function for testing purposes
+    temp:
+        handler: src/temp.handler
 
 package:
     # exclude files from the package
@@ -84,18 +169,19 @@ resources: # CloudFormation template syntax
         # the logs table
         ddbTable:
             Type: AWS::DynamoDB::Table
+            # enable table retention on production use
             # DeletionPolicy: Retain
             Properties:
                 TableName: ${self:custom.resourceName}
                 AttributeDefinitions:
+                    - AttributeName: entity
+                      AttributeType: S
                     - AttributeName: id
                       AttributeType: S
-                    - AttributeName: created_at
-                      AttributeType: N
                 KeySchema:
-                    - AttributeName: id
+                    - AttributeName: entity
                       KeyType: HASH
-                    - AttributeName: created_at
+                    - AttributeName: id
                       KeyType: RANGE
                 # use the On Demand pricing
                 BillingMode: PAY_PER_REQUEST
@@ -118,6 +204,7 @@ resources: # CloudFormation template syntax
                                 Action:
                                     - "ses:*"
                                     - "dynamodb:*"
+                                    - "events:*"
                                 Resource: "*"
 
         # create the access keys for the IAM user
