@@ -44,7 +44,6 @@ module.exports.create = async (data) => {
                     return eb
                         .putRule({
                             Name: "uptimemonitor_" + data.id,
-                            EventBusName: "uptimemonitor_" + project_id,
                             ScheduleExpression: data.schedule,
                             State: "ENABLED",
                         })
@@ -55,9 +54,27 @@ module.exports.create = async (data) => {
                 }
             })
             .then((res) => {
-                console.log(res);
-                resolve(data);
+                if (res.RuleArn) {
+                    // add rule Targets
+                    return eb
+                        .putTargets({
+                            Rule: "uptimemonitor_" + data.id,
+                            Targets: [
+                                {
+                                    Id: "TempLamba",
+                                    Arn: process.env.LAMBDA_ARN,
+                                    Input: JSON.stringify({
+                                        test: "me",
+                                    }),
+                                },
+                            ],
+                        })
+                        .promise();
+                } else {
+                    return Promise.resolve(false);
+                }
             })
+            .then((res) => resolve(data))
             .catch((err) => {
                 console.log(err);
                 reject(err.message);

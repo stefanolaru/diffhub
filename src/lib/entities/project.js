@@ -62,14 +62,6 @@ module.exports.create = async (data) => {
             Item: AWS.DynamoDB.Converter.marshall(data),
         })
             .promise()
-            .then(() => {
-                // create the eventbus
-                return eb
-                    .createEventBus({
-                        Name: "uptimemonitor_" + data.id,
-                    })
-                    .promise();
-            })
             .then(() => resolve(data))
             .catch((err) => {
                 console.log(err);
@@ -154,7 +146,6 @@ module.exports.delete = async (id) => {
                 // 1) delete all tests within project
                 // 2) delete all logs within project ? maybe not, they have TTL
                 // 3) delete all eventbus rules
-                // 4) delete the eventbus
             })
             .then(() => resolve(true))
             .catch((err) => reject(err.message));
