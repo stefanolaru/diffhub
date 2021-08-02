@@ -76,10 +76,11 @@ module.exports.update = async (data) =>
 
 /**
  *  Logs List - requires test_id
+ *  optional limit parameter to get more logs
  * 	returns array of objects
  */
 
-module.exports.list = async (test_id) =>
+module.exports.list = async (test_id, limit = 2) =>
     new Promise((resolve, reject) => {
         ddb.query({
             TableName: process.env.DDB_TABLE,
@@ -92,6 +93,7 @@ module.exports.list = async (test_id) =>
                 ":log_pk": "log-" + test_id,
             }),
             ScanIndexForward: false,
+            Limit: limit,
         })
             .promise()
             .then((res) => {
