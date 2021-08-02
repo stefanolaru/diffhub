@@ -125,6 +125,12 @@ functions:
                   method: PATCH
                   cors: true
                   private: true
+            # list
+            - http:
+                  path: /tests
+                  method: GET
+                  cors: true
+                  private: true
             # view
             - http:
                   path: /tests/{id+}

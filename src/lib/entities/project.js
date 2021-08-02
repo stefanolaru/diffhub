@@ -70,52 +70,39 @@ module.exports.create = async (data) => {
 };
 
 /**
- * 	Project Update
+ * 	Test Update
  * 	retuns true or error
  */
-module.exports.update = async (id, data) => {
-    return new Promise((resolve, reject) => {
+module.exports.update = async (data, silent = false) =>
+    new Promise((resolve, reject) => {
         // init empty stuff here
         let ean = {}; // expression attribute names
         let eav = {}; // expression attribute values
         let uexpr = []; // update expr arr
 
-        // remove id from data if present
-        let pdata = Object.assign({}, data);
-
-        // fields that can be updated
-        const key_whitelist = [
-            "invocations_count",
-            "name",
-            "tests_count",
-            "variables",
-            "notifications",
-        ];
-
-        //
-        // loop all data keys, remove the keys that are not present in whitelist
-        Object.keys(pdata).forEach((key) => {
-            if (key_whitelist.indexOf(key) == -1) {
-                delete pdata[key];
+        // loop obj keys
+        Object.keys(data).forEach((key) => {
+            // exclude the key from attributes
+            if (key != "entity" && key != "id") {
+                ean["#" + key] = key.toString();
+                eav[":" + key] = data[key];
+                uexpr.push("#" + key + "=:" + key);
             }
         });
 
-        // add updated flag
-        pdata["updated_at"] = Math.round(+new Date() / 1000);
-
-        // loop obj keys
-        Object.keys(pdata).forEach((key) => {
-            ean["#" + key] = key.toString();
-            eav[":" + key] = pdata[key];
-            uexpr.push("#" + key + "=:" + key);
-        });
+        // add updated
+        if (!silent) {
+            Object.assign(data, {
+                updated_at: Math.floor(+new Date() / 1000),
+            });
+        }
 
         // update db
         ddb.updateItem({
             TableName: process.env.DDB_TABLE,
             Key: AWS.DynamoDB.Converter.marshall({
                 entity: "project",
-                id: id,
+                id: data.id,
             }),
             ExpressionAttributeNames: ean,
             ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall(eav),
@@ -125,7 +112,6 @@ module.exports.update = async (id, data) => {
             .then(() => resolve(true))
             .catch((err) => reject(err.message));
     });
-};
 
 /**
  * Project delete

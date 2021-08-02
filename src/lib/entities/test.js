@@ -33,7 +33,7 @@ module.exports.create = async (data) => {
             reject("project_id is required");
         }
 
-        console.log(data);
+        // console.log(data);
 
         // write to DB
         ddb.putItem({
@@ -85,6 +85,111 @@ module.exports.get = async (id) => {
             .catch((err) => reject(err.message));
     });
 };
+
+/**
+ *  Test List - requires test_id
+ *  optional limit parameter to get more logs
+ * 	returns array of objects
+ */
+
+module.exports.list = async (project_id = null, limit = -1) =>
+    new Promise((resolve, reject) => {
+        const params = {
+            TableName: process.env.DDB_TABLE,
+        };
+        // query index
+        if (project_id) {
+            Object.assign(params, {
+                IndexName: "project_test_created",
+                KeyConditionExpression: "#test_pk = :test_pk",
+                ExpressionAttributeNames: {
+                    "#test_pk": "test_pk",
+                },
+                ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall({
+                    ":test_pk": "test-" + project_id,
+                }),
+                ScanIndexForward: false,
+            });
+        } else {
+            Object.assign(params, {
+                KeyConditionExpression: "#entity = :entity",
+                ExpressionAttributeNames: {
+                    "#entity": "entity",
+                },
+                ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall({
+                    ":entity": "test",
+                }),
+                ScanIndexForward: false,
+            });
+        }
+
+        // add limit
+        if (limit > -1) {
+            Object.assign(params, {
+                Limit: limit,
+            });
+        }
+
+        // run db query
+        ddb.query(params)
+            .promise()
+            .then((res) => {
+                var items = [];
+                if (res.Items.length) {
+                    res.Items.forEach((item) =>
+                        items.push(AWS.DynamoDB.Converter.unmarshall(item))
+                    );
+                }
+                resolve(items);
+            })
+            .catch((err) => {
+                reject(err.message);
+            });
+    });
+
+/**
+ * 	Test Update
+ * 	retuns true or error
+ */
+module.exports.update = async (data, silent = false) =>
+    new Promise((resolve, reject) => {
+        // init empty stuff here
+        let ean = {}; // expression attribute names
+        let eav = {}; // expression attribute values
+        let uexpr = []; // update expr arr
+
+        // loop obj keys
+        Object.keys(data).forEach((key) => {
+            // exclude the key from attributes
+            if (key != "entity" && key != "id") {
+                ean["#" + key] = key.toString();
+                eav[":" + key] = data[key];
+                uexpr.push("#" + key + "=:" + key);
+            }
+        });
+
+        // add updated
+        if (!silent) {
+            Object.assign(data, {
+                updated_at: Math.floor(+new Date() / 1000),
+            });
+        }
+
+        // update db
+        ddb.updateItem({
+            TableName: process.env.DDB_TABLE,
+            Key: AWS.DynamoDB.Converter.marshall({
+                entity: "test",
+                id: data.id,
+            }),
+            ExpressionAttributeNames: ean,
+            ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall(eav),
+            UpdateExpression: "SET " + uexpr.join(", "),
+        })
+            .promise()
+            .then(() => resolve(true))
+            .catch((err) => reject(err.message));
+    });
 
 /**
  * Test delete

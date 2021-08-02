@@ -1,4 +1,5 @@
-const Test = require("./lib/entities/test");
+const Test = require("./lib/entities/test"),
+    Project = require("./lib/entities/project");
 
 // projects handler
 exports.handler = async (event) => {
@@ -16,28 +17,53 @@ exports.handler = async (event) => {
 
     switch (event.httpMethod) {
         // get tasks or task
-        // case "GET":
-        //     if (event.pathParameters.id) {
-        //         // get project
-        //         response.body = await Project.get(id)
-        //             .then()
-        //             .catch((err) => {
-        //                 return {
-        //                     message: err,
-        //                 };
-        //             });
-        //     } else {
-        //         // list the projects here
-        //         // later !!
-        //     }
-        //     break;
+        case "GET":
+            if (event.pathParameters && event.pathParameters.id) {
+                // get project
+                response.body = await Test.get(event.pathParameters.id)
+                    .then()
+                    .catch((err) => {
+                        return {
+                            message: err,
+                        };
+                    });
+            } else {
+                // list the projects here
+                response.body = await Test.list(
+                    event.queryStringParameters &&
+                        event.queryStringParameters.project_id
+                        ? event.queryStringParameters.project_id
+                        : null
+                )
+                    .then()
+                    .catch((err) => {
+                        return {
+                            message: err,
+                        };
+                    });
+            }
+            break;
 
         case "POST":
-            console.log(JSON.parse(event.body));
-            await Test.create(JSON.parse(event.body))
+            var data = JSON.parse(event.body),
+                project = null;
+            await Project.get(data.project_id)
+                .then((res) => {
+                    project = res;
+                    return Test.create(data);
+                })
                 .then((res) => {
                     response.body = res;
+                    // increment project tests count
+                    return Project.update(
+                        {
+                            id: project.id,
+                            tests_count: project.tests_count + 1,
+                        },
+                        true
+                    );
                 })
+                .then()
                 .catch((err) => {
                     response.statusCode = 400;
                     response.body = {

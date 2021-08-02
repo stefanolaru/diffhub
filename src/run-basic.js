@@ -38,7 +38,24 @@ exports.handler = async (event) => {
 
     // update the log with the test results & send notifications
     await Log.update(log)
-        .then((res) => Notifications.send(log, data, project))
+        .then(() =>
+            Test.update(
+                {
+                    id: data.id,
+                    // update lastrun
+                    lastrun: {
+                        log_id: log.id,
+                        status: log.status,
+                        created_at: log.created_at,
+                        trigger: log.trigger,
+                    },
+                    // increment run count
+                    runs_count: data.runs_count + 1,
+                },
+                true
+            )
+        )
+        .then(() => Notifications.send(log, data, project))
         .then()
         .catch((err) => {
             console.log(err);
