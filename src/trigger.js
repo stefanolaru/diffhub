@@ -4,7 +4,7 @@ const Test = require("./lib/entities/test"),
 // temp function
 exports.handler = async (event) => {
     //
-    console.log("Test Trigger", event);
+    // console.log("Test Trigger", event);
 
     const test_id = event.test_id || event.pathParameters.id;
 
@@ -46,14 +46,15 @@ exports.handler = async (event) => {
 
     // invoke the lambda with the test data & log info
     await Test.run(test, log)
-        .then((res) => {
-            console.log(res);
-        })
+        .then()
         .catch((err) => {
             console.log(err);
-            return false;
+            return {
+                message: "Test could not be triggered at this time",
+            };
         });
 
+    // return the log info
     return response(event, {
         id: log.id,
         created_at: log.created_at,

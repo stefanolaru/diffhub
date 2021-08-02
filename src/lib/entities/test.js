@@ -117,7 +117,7 @@ module.exports.delete = async (item) => {
  */
 module.exports.replaceVars = (data, vars) => {
     // if no vars, return early
-    if (Object.keys(vars).length) return data;
+    if (!vars || !Object.keys(vars).length) return data;
 
     // stringify data
     data = JSON.stringify(data);

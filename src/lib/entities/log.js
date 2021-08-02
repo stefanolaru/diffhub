@@ -49,9 +49,12 @@ module.exports.update = async (data) =>
 
         // loop obj keys
         Object.keys(data).forEach((key) => {
-            ean["#" + key] = key.toString();
-            eav[":" + key] = data[key];
-            uexpr.push("#" + key + "=:" + key);
+            // exclude the key from attributes
+            if (key != "entity" && key != "id") {
+                ean["#" + key] = key.toString();
+                eav[":" + key] = data[key];
+                uexpr.push("#" + key + "=:" + key);
+            }
         });
 
         // update db
@@ -59,7 +62,7 @@ module.exports.update = async (data) =>
             TableName: process.env.DDB_TABLE,
             Key: AWS.DynamoDB.Converter.marshall({
                 entity: "log",
-                id: log.id,
+                id: data.id,
             }),
             ExpressionAttributeNames: ean,
             ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall(eav),
