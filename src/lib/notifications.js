@@ -165,3 +165,42 @@ module.exports.send = async (log, data, project) => {
         webhooks: webhooks,
     });
 };
+
+/**
+ *  Validate email as SES sender
+ *  requires email address
+ * 	returns email address
+ */
+module.exports.validateSenderEmail = async (email) => {
+    // get verified emails from this account
+    const verified_emails = await ses
+        .listIdentities({
+            IdentityType: "EmailAddress",
+        })
+        .promise()
+        .then((res) => res.Identities)
+        .catch((err) => {
+            console.log(err);
+            return [];
+        });
+
+    // validate sender email
+    if (verified_emails.indexOf(email) === -1) {
+        await ses
+            .verifyEmailIdentity({
+                EmailAddress: email,
+            })
+            .promise()
+            .then((res) => {
+                console.log("Sent verification email: " + email);
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+    } else {
+        console.log("Email already verified: " + email);
+    }
+
+    // return
+    return email;
+};
