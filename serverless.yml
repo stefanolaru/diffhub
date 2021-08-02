@@ -1,19 +1,19 @@
-service: uptimemonitor
+service: diffhub
 
 custom:
     defaultStage: dev
-    environment: ${file(env.yml):${self:provider.stage}, file(env.yml):default}
+    #environment: ${file(env.yml):${self:provider.stage}, file(env.yml):default}
     resourceName: ${self:service}_${self:provider.stage}
 
 provider:
     name: aws
-    # local aws profile -- to be removed
+    # local aws profile -- to be updated
     profile: uptimemonitor
     # stage
     stage: ${opt:stage, self:custom.defaultStage}
     runtime: nodejs14.x
     tags:
-        project: uptimemonitor
+        project: ${self:service}
     environment:
         RESOURCE_PREFIX: ${self:custom.resourceName}
     apiKeys:
@@ -60,9 +60,6 @@ functions:
             AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
             SES_TEMPLATE: !Ref emailTemplate
 
-    # run a test manually
-    #
-    #
     # projects CRUD
     projects:
         handler: src/projects.handler
@@ -140,16 +137,6 @@ functions:
                   method: DELETE
                   cors: true
                   private: true
-
-    # email recipient validator, can only be triggered directly
-    # validate:
-    #     handler: src/validate-sender.handler
-    #     environment:
-    #         AWS_KEY: !Ref accessKeys
-    #         AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
-    # temporary function
-    runtest:
-        handler: src/runtest.handler
 
 package:
     # exclude files from the package
