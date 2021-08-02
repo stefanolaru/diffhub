@@ -1,6 +1,7 @@
 const Test = require("./lib/entities/test"),
     Log = require("./lib/entities/log"),
     Project = require("./lib/entities/project"),
+    Notifications = require("./lib/notifications"),
     runner = require("./lib/runner-basic");
 
 // basic test function
@@ -35,14 +36,13 @@ exports.handler = async (event) => {
         .then((res) => res)
         .catch((err) => err);
 
-    // update the log with the test results
+    // update the log with the test results & send notifications
     await Log.update(log)
+        .then((res) => Notifications.send(log, data, project))
         .then()
         .catch((err) => {
             console.log(err);
         });
-
-    // do what's needed based on the result
 
     console.log(log);
 

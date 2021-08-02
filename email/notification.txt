@@ -1,9 +1,3 @@
-Test results
+{{project.name}}
 
-{{#each output}}
-
-- {{id}}
-{{status}} / {{message}}{{#if duration}} / {{duration}}ms{{/if}}
-
-{{/each}}
-
+{{test.name}}
