@@ -19,6 +19,7 @@ module.exports.create = async (test_id, trigger) =>
             entity: "log",
             id: uuid(),
             test_id: test_id,
+            log_pk: "log-" + test_id, // composite partition key, to query logs for a specific test_id
             created_at: Math.floor(+new Date() / 1000),
             // after 7 days (TTL)
             expires_at: Math.round(+new Date() / 1000) + 3600 * 24 * 7,
@@ -71,4 +72,38 @@ module.exports.update = async (data) =>
             .promise()
             .then(() => resolve(true))
             .catch((err) => reject(err.message));
+    });
+
+/**
+ *  Logs List - requires test_id
+ * 	returns array of objects
+ */
+
+module.exports.list = async (test_id) =>
+    new Promise((resolve, reject) => {
+        ddb.query({
+            TableName: process.env.DDB_TABLE,
+            IndexName: "test_log_created",
+            KeyConditionExpression: "#log_pk = :log_pk",
+            ExpressionAttributeNames: {
+                "#log_pk": "log_pk",
+            },
+            ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall({
+                ":log_pk": "log-" + test_id,
+            }),
+            ScanIndexForward: false,
+        })
+            .promise()
+            .then((res) => {
+                var items = [];
+                if (res.Items.length) {
+                    res.Items.forEach((item) =>
+                        items.push(AWS.DynamoDB.Converter.unmarshall(item))
+                    );
+                }
+                resolve(items);
+            })
+            .catch((err) => {
+                reject(err.message);
+            });
     });

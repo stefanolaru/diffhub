@@ -178,11 +178,24 @@ resources: # CloudFormation template syntax
                       AttributeType: S
                     - AttributeName: id
                       AttributeType: S
+                    - AttributeName: log_pk
+                      AttributeType: S
+                    - AttributeName: created_at
+                      AttributeType: N
                 KeySchema:
                     - AttributeName: entity
                       KeyType: HASH
                     - AttributeName: id
                       KeyType: RANGE
+                GlobalSecondaryIndexes:
+                    - IndexName: test_log_created
+                      KeySchema:
+                          - AttributeName: log_pk
+                            KeyType: HASH
+                          - AttributeName: created_at
+                            KeyType: RANGE
+                      Projection:
+                          ProjectionType: ALL
                 # use the On Demand pricing
                 BillingMode: PAY_PER_REQUEST
                 # autodelete logs after specified time
