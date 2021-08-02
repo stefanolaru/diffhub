@@ -12,3 +12,5 @@ Includes a CloudFormation template that
 -   creates a SES Template to notify recipients in case of failure or service back to normal
 
 The Lambda function is triggered via a EventBridge event rule every 5 minutes
+
+See Documentation: https://docs.diffhub.com/
