@@ -167,6 +167,8 @@ resources: # CloudFormation template syntax
                       AttributeType: S
                     - AttributeName: log_pk
                       AttributeType: S
+                    - AttributeName: test_pk
+                      AttributeType: S
                     - AttributeName: created_at
                       AttributeType: N
                 KeySchema:
@@ -178,6 +180,14 @@ resources: # CloudFormation template syntax
                     - IndexName: test_log_created
                       KeySchema:
                           - AttributeName: log_pk
+                            KeyType: HASH
+                          - AttributeName: created_at
+                            KeyType: RANGE
+                      Projection:
+                          ProjectionType: ALL
+                    - IndexName: project_test_created
+                      KeySchema:
+                          - AttributeName: test_pk
                             KeyType: HASH
                           - AttributeName: created_at
                             KeyType: RANGE
