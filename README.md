@@ -1,9 +1,6 @@
 # Automate Website Testing
 
-DiffHub makes it really easy to create automated tests for your website and spot the bugs ahead of your users.
-Spend less time on manual testing and more time doing the work you love.
-
-Deploy a website testing service on AWS, run website or API tests in the cloud for free (excluding AWS costs).
+DiffHub is a automated testing service that runs in AWS and makes it really easy to test websites and APIs.
 
 Includes a CloudFormation template that
 
