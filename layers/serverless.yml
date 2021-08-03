@@ -1,0 +1,19 @@
+service: diffhub-layers
+custom:
+    defaultStage: dev
+provider:
+    name: aws
+    # local aws profile -- to be updated
+    profile: uptimemonitor
+    # stage
+    stage: ${opt:stage, self:custom.defaultStage}
+layers:
+    browser:
+        path: ./chrome-aws-lambda
+resources:
+    Outputs:
+        BrowserLayer:
+            Value:
+                Ref: BrowserLambdaLayer
+            Export:
+                Name: BrowserLambdaLayer
