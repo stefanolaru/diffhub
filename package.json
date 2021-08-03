@@ -1,5 +1,5 @@
 {
-    "name": "uptimemonitor",
+    "name": "diffhub",
     "version": "1.0.0",
     "description": "Deploy a free uptime monitoring service using Serverless",
     "main": "index.js",
@@ -9,7 +9,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/stefanolaru/uptimemonitor.git"
+        "url": "git+https://github.com/stefanolaru/diffhub.git"
     },
     "keywords": [
         "serverless",
@@ -21,9 +21,9 @@
     "author": "Stefan Olaru",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/stefanolaru/uptimemonitor/issues"
+        "url": "https://github.com/stefanolaru/diffhub/issues"
     },
-    "homepage": "https://github.com/stefanolaru/uptimemonitor#readme",
+    "homepage": "https://diffhub.com",
     "dependencies": {
         "axios": "^0.21.1",
         "expect": "^27.0.6",
@@ -31,6 +31,7 @@
     },
     "devDependencies": {
         "aws-sdk": "^2.956.0",
+        "puppeteer": "^10.1.0",
         "serverless-offline": "^8.0.0"
     }
 }
