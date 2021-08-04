@@ -17,7 +17,7 @@ const mock_steps = [
         action: "type",
         context: "document",
         config: {
-            selector: ".search_field",
+            selector: ".ssearch_field",
             text: "stefan",
             options: {
                 delay: 5,
@@ -101,7 +101,8 @@ module.exports.run = async (data, log) => {
         }
     }
 
-    console.log(runner.resources);
+    console.log(runner.response);
+    console.log(log);
 
     // close the browser, if instance exists
     if (runner.browser !== null) await runner.browserClose();
@@ -115,6 +116,8 @@ class browserRunner {
         // browser & page
         this.browser = null;
         this.page = null;
+        // the page response
+        this.response = null;
         // browser console
         this.console = {
             logs: [],
@@ -140,11 +143,12 @@ class browserRunner {
             // open new page
             this.page = await this.browser.newPage();
 
+            // set page interceptors
+            this.pageInterceptors();
+
             // set start time
             let { Timestamp } = await this.page.metrics();
             this.metrics.start_time = Timestamp;
-
-            this.pageInterceptors();
 
             // disable cache
             await this.page.setCacheEnabled(false);
@@ -160,8 +164,22 @@ class browserRunner {
     }
     //
     pageInterceptors() {
+        // stop if no page available
+        if (this.page === null) return;
         // intercept page requests
         this.page.on("response", async (res) => {
+            // get the document response
+            if (
+                res.request().resourceType() === "document" &&
+                res.status() === 200
+            ) {
+                this.response = {
+                    status: res.status(),
+                    statusText: res.statusText(),
+                    url: res.url(),
+                    headers: res.headers(),
+                };
+            }
             // calculate page size
             this.metrics.pagesize += await res
                 .buffer()
@@ -221,11 +239,17 @@ class browserRunner {
     // set user agent
     async useragent(step) {
         // set geolocation
-        return await this.page.setUserAgent(step.config);
+        return await this.page
+            .setUserAgent(step.config)
+            .then()
+            .catch((err) => Promise.reject(err.message));
     }
     // set viewport size
     async viewport(step) {
-        return await this.page.setViewport(step.config);
+        return await this.page
+            .setViewport(step.config)
+            .then()
+            .catch((err) => Promise.reject(err.message));
     }
     // navigate
     async navigate(step) {
@@ -239,18 +263,21 @@ class browserRunner {
             timeout: step.config.timeout || 5000,
         });
         //
-        await this.page
+        return await this.page
             .goto(config.url, config)
             .then()
-            .catch((err) => console.log(err));
+            .catch((err) => Promise.reject(err.message));
     }
     // type text into input
     async type(step) {
-        return await this.page.type(
-            step.config.selector,
-            step.config.text,
-            step.config.options || {}
-        );
+        return await this.page
+            .type(
+                step.config.selector,
+                step.config.text,
+                step.config.options || {}
+            )
+            .then()
+            .catch((err) => Promise.reject(err.message));
     }
     // page reload
     async reload(step) {
@@ -263,7 +290,10 @@ class browserRunner {
             ],
             timeout: step.config.timeout || 5000,
         });
-        return await this.page.reload(step);
+        return await this.page
+            .reload(step)
+            .then()
+            .catch((err) => Promise.reject(err.message));
     }
 
     async wait(step) {
