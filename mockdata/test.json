@@ -4,9 +4,7 @@
     "steps": [
         {
             "action": "navigate",
-            "config": {
-                "url": "{{base_url}}"
-            }
+            "url": "{{base_url}}"
         },
         {
             "action": "expect",
@@ -38,14 +36,12 @@
         },
         {
             "action": "navigate",
-            "config": {
-                "url": "{{base_url}}/login",
-                "method": "post",
-                "data": {
-                    "User": {
-                        "username": "{{username}}",
-                        "password": "{{password}}"
-                    }
+            "url": "{{base_url}}/login",
+            "method": "post",
+            "data": {
+                "User": {
+                    "username": "{{username}}",
+                    "password": "{{password}}"
                 }
             }
         },

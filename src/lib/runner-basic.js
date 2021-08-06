@@ -88,14 +88,18 @@ class basicRunner extends TestRunner {
             });
 
             // enforce a 5 seconds timeout if not otherwise specified
-            if (typeof step.config.timeout === "undefined") {
-                Object.assign(step.config, {
+            if (typeof step.timeout === "undefined") {
+                Object.assign(step, {
                     timeout: 5000,
                 });
             }
 
+            // remove "action" or "context" keys
+            delete step.action;
+            delete step.context;
+
             // return the axios promise
-            axios(step.config)
+            axios(step)
                 .then((res) => {
                     // populate the response
                     this.response = res;

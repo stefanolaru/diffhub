@@ -62,7 +62,7 @@ class TestRunner {
 
         return new Promise((resolve, reject) => {
             // run the Jest test
-            console.log(subject, matcher, value);
+            // console.log(subject, matcher, value);
             try {
                 // check for negation
                 if (matcher.startsWith("not.")) {

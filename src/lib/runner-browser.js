@@ -6,14 +6,15 @@ const chromium = require("chrome-aws-lambda"),
  * returns the log updated with the test results
  */
 
-const mockdata = require("../../mockdata/test-browser.json");
-
 module.exports.run = async (data, log) => {
     // instantiate the test runner
     const runner = new browserRunner();
 
-    data = mockdata;
-    log["steps"] = [];
+    // add start time to the log
+    Object.assign(log, {
+        started_at: Date.now(),
+        steps: [], // and empty steps
+    });
 
     // open the browser
     await runner
@@ -26,7 +27,7 @@ module.exports.run = async (data, log) => {
         // loop test steps
         while (data.steps.length) {
             const step = data.steps.shift();
-            console.log(step);
+            // console.log(step);
             try {
                 await runner[step.action](step)
                     .then((r) => {
@@ -76,7 +77,8 @@ module.exports.run = async (data, log) => {
     // console.log(runner.response);
     console.log(log);
 
-    return Promise.resolve(true);
+    // return promise resolve/reject
+    return log.status === "PASS" ? Promise.resolve(log) : Promise.reject(log);
 };
 
 class browserRunner extends TestRunner {
@@ -179,118 +181,103 @@ class browserRunner extends TestRunner {
     }
     // puppeteer methods
     async authenticate(step) {
-        return await this.page.authenticate(step.config);
+        return await this.page.authenticate(step);
     }
     // set extra http header
     async header(step) {
         // set headers
-        return await this.page.setExtraHTTPHeaders(step.config);
+        return await this.page.setExtraHTTPHeaders(step);
     }
     // set geolocation
     async geolocation(step) {
         // set geolocation
-        return await this.page.setGeolocation(step.config);
+        return await this.page.setGeolocation(step);
     }
     // set user agent
     async useragent(step) {
         // set geolocation
         return await this.page
-            .setUserAgent(step.config)
+            .setUserAgent(step)
             .then()
             .catch((err) => Promise.reject(err.message));
     }
     // set viewport size
     async viewport(step) {
         return await this.page
-            .setViewport(step.config)
+            .setViewport(step)
             .then()
             .catch((err) => Promise.reject(err.message));
     }
     // navigate
     async navigate(step) {
-        const config = step.config || {};
         // add default navigation config
-        Object.assign(config, {
-            waitUntil: step.config.waitUntil || [
-                "domcontentloaded",
-                "networkidle2",
-            ],
-            timeout: step.config.timeout || 5000,
+        Object.assign(step, {
+            waitUntil: step.waitUntil || ["domcontentloaded", "networkidle2"],
+            timeout: step.timeout || 5000,
         });
         //
         return await this.page
-            .goto(config.url, config)
+            .goto(step.url, step)
             .then()
             .catch((err) => Promise.reject(err.message));
     }
     // type text into input
     async type(step) {
         return await this.page
-            .type(
-                step.config.selector,
-                step.config.text,
-                step.config.options || {}
-            )
+            .type(step.selector, step.text, step.options || {})
             .then()
             .catch((err) => Promise.reject(err.message));
     }
     // page reload
     async reload(step) {
-        const config = step.config || {};
         // add default navigation config
-        Object.assign(config, {
-            waitUntil: step.config.waitUntil || [
-                "domcontentloaded",
-                "networkidle2",
-            ],
-            timeout: step.config.timeout || 5000,
+        Object.assign(step, {
+            waitUntil: step.waitUntil || ["domcontentloaded", "networkidle2"],
+            timeout: step.timeout || 5000,
         });
         return await this.page
-            .reload(config)
+            .reload(step)
             .then()
             .catch((err) => Promise.reject(err.message));
     }
 
     async click(step) {
-        const { config } = step;
-        // console.log(config);
-        return config.navigate
+        return step.navigate
             ? await Promise.all([
-                  this.page.click(config.selector),
+                  this.page.click(step.selector),
                   this.page.waitForNavigation({
-                      waitUntil: config.waitUntil || ["networkidle2"],
-                      timeout: config.timeout || 5000,
+                      waitUntil: step.waitUntil || ["networkidle2"],
+                      timeout: step.timeout || 5000,
                   }),
               ])
-            : await this.page.click(config.selector);
+            : await this.page.click(step.selector);
     }
 
-    async waitForNavigation(step) {
-        const config = step.config || {};
-        return await this.page.waitForNavigation({
-            waitUntil: config.waitUntil || ["domcontentloaded", "networkidle2"],
-            timeout: config.timeout || 5000,
-        });
-    }
+    // async waitForNavigation(step) {
+    //     return await this.page.waitForNavigation({
+    //         waitUntil: step.waitUntil || ["domcontentloaded", "networkidle2"],
+    //         timeout: step.timeout || 5000,
+    //     });
+    // }
 
-    async wait(step) {
-        // if target is null, wait for interval, else wait for target
-        switch (step.value.type) {
-            case "selector":
-                return await this.page.waitFor(step.value.selector, {
-                    timeout: this.timeout,
-                });
-            case "navigation":
-                return await this.page.waitForNavigation({
-                    waitUntil: ["domcontentloaded", "networkidle2"],
-                    timeout: this.timeout,
-                });
-            default:
-                return await this.page.waitFor(parseInt(step.value.timeout), {
-                    timeout: this.timeout,
-                });
-        }
-    }
+    // async wait(step) {
+    //     // if target is null, wait for interval, else wait for target
+    //     switch (step.value.type) {
+    //         case "selector":
+    //             return await this.page.waitFor(step.value.selector, {
+    //                 timeout: this.timeout,
+    //             });
+    //         case "navigation":
+    //             return await this.page.waitForNavigation({
+    //                 waitUntil: ["domcontentloaded", "networkidle2"],
+    //                 timeout: this.timeout,
+    //             });
+    //         default:
+    //             return await this.page.waitFor(parseInt(step.value.timeout), {
+    //                 timeout: this.timeout,
+    //             });
+    //     }
+    // }
     // get the assertion subject
     // subject can be a string (selector) or array [selector, property, args]
     // can be a DOM element or a DOM element property
