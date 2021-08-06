@@ -11,22 +11,30 @@
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["status", "toBe", 200]
+            "subject": "status",
+            "matcher": "toBe",
+            "value": 200
         },
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["headers.content-type", "toContain", "text/html"]
+            "subject": "headers.content-type",
+            "matcher": "toContain",
+            "value": "text/html"
         },
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["data", "toContain", "theLoginModal"]
+            "subject": "data",
+            "matcher": "toContain",
+            "value": "theLoginModal"
         },
         {
             "action": "expect",
-            "context": "response",
-            "matcher": ["duration", "toBeLessThan", 2000]
+            "context": "metrics",
+            "subject": "duration",
+            "matcher": "toBeLessThan",
+            "value": 2000
         },
         {
             "action": "navigate",
@@ -44,12 +52,16 @@
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["data", "not.toContain", "error_message"]
+            "subject": "data",
+            "matcher": "not.toContain",
+            "value": "error_message"
         },
         {
             "action": "expect",
             "context": "response",
-            "matcher": ["data", "not.toContain", "loginForm"]
+            "subject": "data",
+            "matcher": "not.toContain",
+            "value": "loginForm"
         }
     ]
 }
