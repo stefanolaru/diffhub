@@ -28,7 +28,7 @@
         {
             "action": "expect",
             "context": "document",
-            "subject": "#favorite_count",
+            "subject": "#favorites_count",
             "matcher": "toBePresent"
         },
         {

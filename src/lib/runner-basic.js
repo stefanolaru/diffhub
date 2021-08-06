@@ -1,6 +1,7 @@
 const axios = require("axios"),
-    expect = require("expect");
+    TestRunner = require("../lib/runner");
 
+const mockdata = require("../../mockdata/test.json");
 /**
  * Basic test run, does HTTP request using Axios
  * requires test data & log
@@ -9,6 +10,8 @@ const axios = require("axios"),
 module.exports.run = async (data, log) => {
     // instantiate the test runner
     const runner = new basicRunner();
+
+    data = mockdata;
 
     // add start time to the log
     Object.assign(log, {
@@ -68,25 +71,19 @@ module.exports.run = async (data, log) => {
     return log.status === "PASS" ? Promise.resolve(log) : Promise.reject(log);
 };
 
-class basicRunner {
-    // constructor
-    constructor() {
-        // instantiate request response
-        this.response = null;
-    }
+class basicRunner extends TestRunner {
     // axios makes the http request
     async navigate(step) {
         return new Promise((resolve) => {
             // create the axios interceptors
             // add start time before request is made
             axios.interceptors.request.use((config) => {
-                config["__start_time"] = Date.now();
+                this.metrics["start_time"] = Date.now();
                 return config;
             });
             // add end time & duration on response
             axios.interceptors.response.use((response) => {
-                response["duration"] =
-                    Date.now() - response.config.__start_time;
+                this.metrics["duration"] = Date.now() - this.metrics.start_time;
                 return response;
             });
 
@@ -110,37 +107,6 @@ class basicRunner {
                     // resolve anyway, assertions will do the rest
                     resolve();
                 });
-        });
-    }
-    // Jest expect handles the assertions
-    async expect(step) {
-        return new Promise((resolve, reject) => {
-            // destructure assertion components
-            let [subject, matcher, value] = step.matcher;
-
-            // if no subject or matcher, ignore assertion, resolve early
-            if (!subject || !matcher) {
-                resolve();
-            }
-
-            // extract the subject path from response
-            // works for dotted notation i.e. response.headers.content-type
-            subject = subject.split(".").reduce((o, i) => o[i], this.response);
-
-            // run the Jest test
-            try {
-                // check for negation
-                if (matcher.startsWith("not.")) {
-                    expect(subject).not[matcher.replace("not.", "")](value);
-                } else {
-                    expect(subject)[matcher](value);
-                }
-                // resolve
-                resolve();
-            } catch (e) {
-                // reject
-                reject(e.message);
-            }
         });
     }
 }
