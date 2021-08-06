@@ -316,6 +316,8 @@ class browserRunner {
         }
     }
     // get the assertion subject
+    // subject can be a string (selector) or array [selector, property, args]
+    // can be a DOM element or a DOM element property
     async getSubject(params) {
         // if it's a string, just return the selector
         if (typeof params === "string") {
