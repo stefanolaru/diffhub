@@ -355,7 +355,7 @@ class browserRunner {
 
         // if no subject or matcher, ignore assertion, resolve early
         if (!subject || !matcher) {
-            resolve();
+            return Promise.resolve();
         }
 
         // extract the subject path from response
