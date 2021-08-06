@@ -1,53 +1,21 @@
 const chromium = require("chrome-aws-lambda"),
-    expect = require("expect");
+    expect = require("expect"),
+    matchers = require("../lib/matchers");
 
+expect.extend(matchers);
 /**
  * Browser test run, does opens a browser
  * requires test data & log
  * returns the log updated with the test results
  */
-const mock_steps = [
-    {
-        action: "navigate",
-        config: {
-            url: "https://crafty.ro",
-        },
-    },
-    {
-        action: "type",
-        context: "document",
-        config: {
-            selector: ".ssearch_field",
-            text: "stefan",
-            options: {
-                delay: 5,
-            },
-        },
-    },
-    // {
-    //     action: "expect",
-    //     context: "response",
-    //     matcher: ["headers.content-type", "toContain", "text/html"],
-    // },
-    // {
-    //     action: "expect",
-    //     context: "response",
-    //     matcher: ["data", "toContain", "theLoginModal"],
-    // },
-    // {
-    //     action: "expect",
-    //     context: "response",
-    //     matcher: ["duration", "toBeLessThan", 2000],
-    // },
-];
+
+const mockdata = require("../../mockdata/test-browser.json");
 
 module.exports.run = async (data, log) => {
     // instantiate the test runner
     const runner = new browserRunner();
 
-    data = {
-        steps: mock_steps,
-    };
+    data = mockdata;
     log["steps"] = [];
 
     // open the browser
@@ -61,10 +29,11 @@ module.exports.run = async (data, log) => {
         // loop test steps
         while (data.steps.length) {
             const step = data.steps.shift();
-            // console.log(step);
+            console.log(step);
             try {
                 await runner[step.action](step)
-                    .then(() => {
+                    .then((r) => {
+                        // console.log(r);
                         // add passed step to the output
                         log.steps.push(
                             Object.assign(step, {
@@ -101,11 +70,14 @@ module.exports.run = async (data, log) => {
         }
     }
 
-    console.log(runner.response);
-    console.log(log);
-
     // close the browser, if instance exists
-    if (runner.browser !== null) await runner.browserClose();
+    if (runner.browser !== null) {
+        await runner.browserClose();
+    }
+
+    // console.log(runner.metrics);
+    // console.log(runner.response);
+    console.log(log);
 
     return Promise.resolve(true);
 };
@@ -160,6 +132,13 @@ class browserRunner {
         return Promise.resolve(true);
     }
     async browserClose() {
+        // update metrics duration
+        let { Timestamp } = await this.page.metrics();
+        this.metrics.duration = Math.ceil(
+            (Timestamp - this.metrics.start_time) * 1000
+        );
+        //
+        console.log(this.metrics);
         await this.browser.close();
     }
     //
@@ -296,6 +275,28 @@ class browserRunner {
             .catch((err) => Promise.reject(err.message));
     }
 
+    async click(step) {
+        const { config } = step;
+        // console.log(config);
+        return config.navigate
+            ? await Promise.all([
+                  this.page.click(config.selector),
+                  this.page.waitForNavigation({
+                      waitUntil: config.waitUntil || ["networkidle2"],
+                      timeout: config.timeout || 5000,
+                  }),
+              ])
+            : await this.page.click(config.selector);
+    }
+
+    async waitForNavigation(step) {
+        const config = step.config || {};
+        return await this.page.waitForNavigation({
+            waitUntil: config.waitUntil || ["domcontentloaded", "networkidle2"],
+            timeout: config.timeout || 5000,
+        });
+    }
+
     async wait(step) {
         // if target is null, wait for interval, else wait for target
         switch (step.value.type) {
@@ -313,5 +314,98 @@ class browserRunner {
                     timeout: this.timeout,
                 });
         }
+    }
+    // get the assertion subject
+    async getSubject(params) {
+        // if it's a string, just return the selector
+        if (typeof params === "string") {
+            return Promise.resolve(params);
+        }
+        // destructure params
+        const [selector, property, value] = params;
+        // console.log(selector, property, value);
+        const r = await this.page.evaluate(
+            (selector, property, value) => {
+                const el = document.querySelector(selector);
+                //
+                if (el) {
+                    if (property) {
+                        if (value) {
+                            return el[property](value);
+                        }
+                        return el[property];
+                    }
+                }
+                return el;
+            },
+            selector,
+            property,
+            value
+        );
+
+        return r;
+    }
+
+    // Jest expect handles the assertions
+    async expect(step) {
+        // destructure assertion components
+        let { subject, matcher, value } = step;
+
+        // if no subject or matcher, ignore assertion, resolve early
+        if (!subject || !matcher) {
+            resolve();
+        }
+
+        // extract the subject path from response
+        // works for dotted notation i.e. response.headers.content-type
+        let context = this.response;
+
+        switch (step.context) {
+            case "document":
+                context = this.page;
+                break;
+            case "metrix":
+                context = this.metrics;
+                break;
+            case "resource":
+                context = this.resources;
+                break;
+        }
+
+        if (step.context !== "document") {
+            // split object notation
+            subject = subject.split(".").reduce((o, i) => o[i], context);
+        } else {
+            subject = await this.getSubject(subject);
+        }
+
+        return new Promise((resolve, reject) => {
+            // run the Jest test
+            console.log(subject, matcher, value);
+            try {
+                // check for negation
+                if (matcher.startsWith("not.")) {
+                    // remove the not.
+                    matcher = matcher.replace("not.", "");
+                    // pass the context for custom matchers
+                    if (matchers[matcher]) {
+                        expect(subject).not[matcher](context, value);
+                    } else {
+                        expect(subject).not[matcher](value);
+                    }
+                } else {
+                    if (matchers[matcher]) {
+                        expect(subject)[matcher](context, value);
+                    } else {
+                        expect(subject)[matcher](value);
+                    }
+                }
+                // resolve
+                resolve();
+            } catch (e) {
+                // reject
+                reject(e.message);
+            }
+        });
     }
 }
