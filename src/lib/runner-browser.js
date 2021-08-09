@@ -100,11 +100,7 @@ class browserRunner extends TestRunner {
             this.page = await this.browser.newPage();
 
             // set page interceptors
-            this.pageInterceptors();
-
-            // set start time
-            let { Timestamp } = await this.page.metrics();
-            this.metrics.start_time = Timestamp;
+            this._pageInterceptors();
 
             // disable cache
             await this.page.setCacheEnabled(false);
@@ -126,7 +122,7 @@ class browserRunner extends TestRunner {
         await this.browser.close();
     }
     //
-    pageInterceptors() {
+    _pageInterceptors() {
         // stop if no page available
         if (this.page === null) return;
         // intercept page requests
@@ -216,6 +212,10 @@ class browserRunner extends TestRunner {
     }
     // navigate
     async navigate(step) {
+        // reset metrix
+        let { Timestamp } = await this.page.metrics();
+        this.metrics.start_time = Timestamp;
+
         // add default navigation config
         Object.assign(step, {
             waitUntil: step.waitUntil || ["domcontentloaded", "networkidle2"],
