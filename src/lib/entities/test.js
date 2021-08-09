@@ -238,7 +238,7 @@ module.exports.replaceVars = (data, vars) => {
         return x;
     });
 
-    return data;
+    return JSON.parse(data);
 };
 
 /**
