@@ -1,9 +1,10 @@
 const yaml = require("js-yaml"),
     fs = require("fs"),
     axios = require("axios"),
-    basic_test_data = require("../mockdata/test.json");
+    basic_test_data = require("../mockdata/test.json"),
+    project_vars = require("../mockdata/project-variables.json");
 
-var project_id = null,
+var project = null,
     test_id = null;
 
 // set env
@@ -22,27 +23,29 @@ beforeAll(async () => {
     axios.defaults.headers.common["x-api-key"] = process.env.api_key;
 
     // create the project
-    project_id = await axios
+    project = await axios
         .post(
             process.env.api_endpoint + "/projects",
             JSON.stringify({
                 name: "My new project",
+                // add project vars
+                variables: project_vars,
                 // set the expires flag for tests, 24h TTL
                 expires_at: Math.round(+new Date() / 1000) + 3600 * 24,
             })
         )
-        .then((res) => res.data.id)
+        .then((res) => res.data)
         .catch((err) => null);
     // log into console
-    console.log("Project ID:", project_id);
+    console.log("Project ID:", project.id);
 });
 
 // delete the project
 afterAll(async () => {
     // delete the project
-    if (project_id) {
+    if (project.id) {
         await axios.delete(
-            process.env.api_endpoint + "/projects/" + project_id
+            process.env.api_endpoint + "/projects/" + project.id
         );
     }
     // delete the test
@@ -54,7 +57,7 @@ afterAll(async () => {
 describe("Tests CRUD API test (w/ API key)", () => {
     // check project_id
     it("Should have project_id populated", () => {
-        expect(project_id).not.toBeNull();
+        expect(project.id).not.toBeNull();
     });
     // create a basic test
     it("Should create a basic test", async () => {
@@ -63,7 +66,7 @@ describe("Tests CRUD API test (w/ API key)", () => {
                 process.env.api_endpoint + "/tests",
                 JSON.stringify(
                     Object.assign(basic_test_data, {
-                        project_id: project_id,
+                        project_id: project.id,
                         // set the expires flag for tests, 24h TTL
                         expires_at: Math.round(+new Date() / 1000) + 3600 * 24,
                     })
@@ -113,7 +116,7 @@ describe("Tests CRUD API test (w/ API key)", () => {
         expect(test_id).not.toBeNull();
         const res = await axios.get(process.env.api_endpoint + "/tests", {
             params: {
-                project_id: project_id,
+                project_id: project.id,
             },
         });
         expect(res.status).toBe(200);
