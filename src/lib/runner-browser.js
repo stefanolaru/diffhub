@@ -75,7 +75,13 @@ module.exports.run = async (data, log) => {
 
     // console.log(runner.metrics);
     // console.log(runner.response);
-    console.log(log);
+    // console.log(log);
+
+    // add duration & final status to the output
+    Object.assign(log, {
+        status: log.status !== "FAIL" ? "PASS" : "FAIL", // if it didn't fail, it's a PASS, doh!
+        duration: Math.round(Date.now() - log.started_at),
+    });
 
     // return promise resolve/reject
     return log.status === "PASS" ? Promise.resolve(log) : Promise.reject(log);

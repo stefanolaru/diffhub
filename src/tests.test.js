@@ -1,8 +1,13 @@
 const yaml = require("js-yaml"),
     fs = require("fs"),
     axios = require("axios"),
-    basic_test_data = require("../mockdata/test.json"),
-    project_vars = require("../mockdata/project-variables.json");
+    basic_test_data = require("../mockdata/test-basic.json"),
+    browser_test_data = require("../mockdata/test-browser.json"),
+    project_vars = require("../mockdata/project-variables.json"),
+    // test stuff
+    Test = require("./lib/entities/test"),
+    basicRunner = require("./lib/runner-basic"),
+    browserRunner = require("./lib/runner-browser");
 
 var project = null,
     test_id = null;
@@ -132,4 +137,37 @@ describe("Tests CRUD API test (w/ API key)", () => {
         // set back to null
         test_id = null;
     });
+});
+
+describe("Test Runners", () => {
+    //
+    var basic_data = Test.replaceVars(basic_test_data, project_vars);
+    var browser_data = Test.replaceVars(browser_test_data, project_vars);
+    // replace project vars
+    it("Should replace the project variables", () => {
+        // check if successfully decodes {{base_url}}
+        expect(basic_data.steps[0].url).toBe(project_vars.base_url);
+    });
+
+    it("Should run a basic test and return a log object", async () => {
+        // console.log(test_data);
+        const output = await basicRunner
+            .run(basic_data, {})
+            .then()
+            .catch((err) => err);
+
+        expect(output.status).toBeDefined();
+    }, 10000);
+
+    it("Should run a browser test and return a log object", async () => {
+        // console.log(test_data);
+        const output = await browserRunner
+            .run(browser_data, {})
+            .then()
+            .catch((err) => err);
+
+        console.log(output);
+
+        expect(output.status).toBeDefined();
+    }, 60000);
 });

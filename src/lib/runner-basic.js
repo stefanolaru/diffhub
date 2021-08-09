@@ -1,7 +1,6 @@
 const axios = require("axios"),
     TestRunner = require("../lib/runner");
 
-const mockdata = require("../../mockdata/test.json");
 /**
  * Basic test run, does HTTP request using Axios
  * requires test data & log
@@ -10,8 +9,6 @@ const mockdata = require("../../mockdata/test.json");
 module.exports.run = async (data, log) => {
     // instantiate the test runner
     const runner = new basicRunner();
-
-    data = mockdata;
 
     // add start time to the log
     Object.assign(log, {
