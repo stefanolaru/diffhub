@@ -38,7 +38,7 @@ describe("Projects CRUD API test (w/ API key)", () => {
         expect(res.data.id).toBeDefined();
         // populate project_id
         project_id = res.data.id;
-        console.log(project_id);
+        console.log("Project ID:", project_id);
     });
     // test patch
     it("Should update project with updated_name value", async () => {
