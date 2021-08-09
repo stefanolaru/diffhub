@@ -17,9 +17,9 @@ exports.handler = async (event) => {
     switch (event.httpMethod) {
         // get tasks or task
         case "GET":
-            if (event.pathParameters.id) {
+            if (event.pathParameters && event.pathParameters.id) {
                 // get project
-                response.body = await Project.get(id)
+                response.body = await Project.get(event.pathParameters.id)
                     .then()
                     .catch((err) => {
                         return {
@@ -27,8 +27,14 @@ exports.handler = async (event) => {
                         };
                     });
             } else {
-                // list the projects here
-                // later !!
+                // get the list of projects
+                response.body = await Project.list()
+                    .then()
+                    .catch((err) => {
+                        return {
+                            message: err,
+                        };
+                    });
             }
             break;
 

@@ -70,6 +70,54 @@ module.exports.create = async (data) => {
 };
 
 /**
+ *  Projects List
+ *  optional limit parameter to get more logs
+ * 	returns array of objects
+ */
+
+module.exports.list = async (limit = -1) =>
+    new Promise((resolve, reject) => {
+        const params = {
+            TableName: process.env.DDB_TABLE,
+        };
+
+        // query index
+        Object.assign(params, {
+            KeyConditionExpression: "#entity = :entity",
+            ExpressionAttributeNames: {
+                "#entity": "entity",
+            },
+            ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall({
+                ":entity": "project",
+            }),
+            ScanIndexForward: false,
+        });
+
+        // add limit
+        if (limit > -1) {
+            Object.assign(params, {
+                Limit: limit,
+            });
+        }
+
+        // run db query
+        ddb.query(params)
+            .promise()
+            .then((res) => {
+                var items = [];
+                if (res.Items.length) {
+                    res.Items.forEach((item) =>
+                        items.push(AWS.DynamoDB.Converter.unmarshall(item))
+                    );
+                }
+                resolve(items);
+            })
+            .catch((err) => {
+                reject(err.message);
+            });
+    });
+
+/**
  * 	Test Update
  * 	retuns true or error
  */
