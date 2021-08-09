@@ -147,6 +147,7 @@ describe("Test Runners", () => {
     it("Should replace the project variables", () => {
         // check if successfully decodes {{base_url}}
         expect(basic_data.steps[0].url).toBe(project_vars.base_url);
+        expect(browser_data.steps[0].url).toBe(project_vars.base_url);
     });
 
     it("Should run a basic test and return a log object", async () => {
@@ -166,7 +167,7 @@ describe("Test Runners", () => {
             .then()
             .catch((err) => err);
 
-        console.log(output);
+        // console.log(output);
 
         expect(output.status).toBeDefined();
     }, 60000);

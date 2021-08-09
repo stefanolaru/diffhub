@@ -4,7 +4,7 @@
     "steps": [
         {
             "action": "navigate",
-            "url": "https://crafty.ro"
+            "url": "{{base_url}}"
         },
         {
             "action": "type",
