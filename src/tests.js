@@ -72,21 +72,18 @@ exports.handler = async (event) => {
                 });
             break;
 
-        // case "PATCH":
-        //     await Project.update(
-        //         event.pathParameters.id,
-        //         JSON.parse(event.body)
-        //     )
-        //         .then((res) => {
-        //             response.body = res;
-        //         })
-        //         .catch((err) => {
-        //             response.statusCode = 400;
-        //             response.body = {
-        //                 message: err,
-        //             };
-        //         });
-        //     break;
+        case "PATCH":
+            await Test.update(event.pathParameters.id, JSON.parse(event.body))
+                .then((res) => {
+                    response.body = res;
+                })
+                .catch((err) => {
+                    response.statusCode = 400;
+                    response.body = {
+                        message: err,
+                    };
+                });
+            break;
 
         case "DELETE":
             await Test.get(event.pathParameters.id)
