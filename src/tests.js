@@ -56,8 +56,8 @@ exports.handler = async (event) => {
                     response.body = res;
                     // increment project tests count
                     return Project.update(
+                        project.id,
                         {
-                            id: project.id,
                             tests_count: project.tests_count + 1,
                         },
                         true
