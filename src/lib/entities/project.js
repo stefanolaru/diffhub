@@ -118,10 +118,10 @@ module.exports.list = async (limit = -1) =>
     });
 
 /**
- * 	Test Update
+ * 	Project Update - requires project_id & data
  * 	retuns true or error
  */
-module.exports.update = async (data, silent = false) =>
+module.exports.update = async (project_id, data, silent = false) =>
     new Promise((resolve, reject) => {
         // init empty stuff here
         let ean = {}; // expression attribute names
@@ -150,7 +150,7 @@ module.exports.update = async (data, silent = false) =>
             TableName: process.env.DDB_TABLE,
             Key: AWS.DynamoDB.Converter.marshall({
                 entity: "project",
-                id: data.id,
+                id: project_id,
             }),
             ExpressionAttributeNames: ean,
             ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall(eav),

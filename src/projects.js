@@ -39,7 +39,7 @@ exports.handler = async (event) => {
             break;
 
         case "POST":
-            console.log(JSON.parse(event.body));
+            // console.log(JSON.parse(event.body));
             await Project.create(JSON.parse(event.body))
                 .then((res) => {
                     response.body = res;
