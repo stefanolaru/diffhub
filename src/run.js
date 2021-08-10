@@ -2,15 +2,20 @@ const Test = require("./lib/entities/test"),
     Log = require("./lib/entities/log"),
     Project = require("./lib/entities/project"),
     Notifications = require("./lib/notifications"),
-    runner = require("./lib/runner-basic");
+    BasicTestRunner = require("./lib/runner-basic"),
+    BrowserTestRunner = require("./lib/runner-browser");
 
-// basic test function
+// testrunner
 // we assume what got here was previously checked by the triggering function
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
     //
-    console.log("Basic test run.", event);
-
     let { data, log } = event;
+
+    //
+    const type = context.functionName.endsWith("-runbrowser")
+        ? "browser"
+        : "basic";
+    const runner = type === "browser" ? BrowserTestRunner : BasicTestRunner;
 
     // stop if test or log is missing
     if (!data || !log) return false;

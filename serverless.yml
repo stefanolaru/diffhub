@@ -43,7 +43,9 @@ functions:
     runbasic:
         memorySize: 128
         timeout: 60
-        handler: src/run-basic.handler
+        handler: src/run.handler
+        layers:
+            - ${cf:${self:service}-layers-${self:provider.stage}.BrowserLayer}
         environment:
             DDB_TABLE: !Ref ddbTable
             AWS_KEY: !Ref accessKeys
@@ -53,7 +55,7 @@ functions:
     runbrowser:
         memorySize: 1024
         timeout: 120 # browser tests can take longer
-        handler: src/run-browser.handler
+        handler: src/run.handler
         layers:
             - ${cf:${self:service}-layers-${self:provider.stage}.BrowserLayer}
         environment:
