@@ -11,7 +11,7 @@ exports.handler = async (event, context) => {
     //
     let { data, log } = event;
 
-    //
+    // get function type
     const type = context.functionName.endsWith("-runbrowser")
         ? "browser"
         : "basic";

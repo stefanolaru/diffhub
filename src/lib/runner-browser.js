@@ -94,8 +94,9 @@ class browserRunner extends TestRunner {
         try {
             // start browser
             this.browser = await chromium.puppeteer.launch({
+                args: ["--no-sandbox", "--disable-setuid-sandbox"],
                 executablePath: await chromium.executablePath,
-                headless: false,
+                // headless: false,
             });
 
             // open new page
