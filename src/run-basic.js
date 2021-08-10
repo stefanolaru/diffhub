@@ -28,7 +28,10 @@ exports.handler = async (event) => {
         });
 
     // replace project variables
-    data = Test.replaceVars(data, project.variables);
+    data = Test.replaceVars(
+        data,
+        Project.decryptVars(project.variables, project.id)
+    );
 
     // trigger the runner, update the log with the test results
     log = await runner
@@ -37,11 +40,11 @@ exports.handler = async (event) => {
         .catch((err) => err);
 
     // update the log with the test results & send notifications
-    await Log.update(log)
+    await Log.update(log.id, log)
         .then(() =>
             Test.update(
+                data.id,
                 {
-                    id: data.id,
                     // update lastrun
                     lastrun: {
                         log_id: log.id,
