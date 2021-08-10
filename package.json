@@ -27,6 +27,7 @@
     "homepage": "https://diffhub.com",
     "dependencies": {
         "axios": "^0.21.1",
+        "crypto": "^1.0.1",
         "expect": "^27.0.6",
         "js-yaml": "^4.1.0",
         "uuid": "^8.3.2"
