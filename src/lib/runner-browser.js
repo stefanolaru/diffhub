@@ -83,6 +83,8 @@ module.exports.run = async (data, log) => {
         duration: Math.round(Date.now() - log.started_at),
     });
 
+    console.log(log);
+
     // return promise resolve/reject
     return log.status === "PASS" ? Promise.resolve(log) : Promise.reject(log);
 };
@@ -168,6 +170,7 @@ class browserRunner extends TestRunner {
                 location: msg.location(),
             });
         });
+
         // intercept page errors
         this.page.on("pageerror", (err) => {
             this.console.errors.push({
@@ -175,6 +178,7 @@ class browserRunner extends TestRunner {
                 location: null,
             });
         });
+
         // intercept page dialogs, could be an error?
         this.page.on("dialog", async (dialog) => {
             console.log(await dialog.message());
@@ -212,7 +216,7 @@ class browserRunner extends TestRunner {
     }
     // navigate
     async navigate(step) {
-        // reset metrix
+        // reset metrics for every page
         let { Timestamp } = await this.page.metrics();
         this.metrics.start_time = Timestamp;
 
@@ -230,7 +234,7 @@ class browserRunner extends TestRunner {
     // type text into input
     async type(step) {
         return await this.page
-            .type(step.selector, step.text, step.options || {})
+            .type(step.subject, step.text, step.options || {})
             .then()
             .catch((err) => Promise.reject(err.message));
     }
@@ -250,40 +254,23 @@ class browserRunner extends TestRunner {
     async click(step) {
         return step.navigate
             ? await Promise.all([
-                  this.page.click(step.selector),
+                  this.page.click(step.subject),
                   this.page.waitForNavigation({
                       waitUntil: step.waitUntil || ["networkidle2"],
                       timeout: step.timeout || 5000,
                   }),
               ])
-            : await this.page.click(step.selector);
+            : await this.page.click(step.subject);
     }
 
-    // async waitForNavigation(step) {
-    //     return await this.page.waitForNavigation({
-    //         waitUntil: step.waitUntil || ["domcontentloaded", "networkidle2"],
-    //         timeout: step.timeout || 5000,
-    //     });
-    // }
+    async waitForTimeout(step) {
+        return await this.page.waitForTimeout(step.timeout);
+    }
 
-    // async wait(step) {
-    //     // if target is null, wait for interval, else wait for target
-    //     switch (step.value.type) {
-    //         case "selector":
-    //             return await this.page.waitFor(step.value.selector, {
-    //                 timeout: this.timeout,
-    //             });
-    //         case "navigation":
-    //             return await this.page.waitForNavigation({
-    //                 waitUntil: ["domcontentloaded", "networkidle2"],
-    //                 timeout: this.timeout,
-    //             });
-    //         default:
-    //             return await this.page.waitFor(parseInt(step.value.timeout), {
-    //                 timeout: this.timeout,
-    //             });
-    //     }
-    // }
+    async waitForSelector(step) {
+        return await this.page.waitForSelector(step.subject, step.options);
+    }
+
     // get the assertion subject
     // subject can be a string (selector) or array [selector, property, args]
     // can be a DOM element or a DOM element property

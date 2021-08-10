@@ -64,6 +64,8 @@ module.exports.run = async (data, log) => {
         duration: Math.round(Date.now() - log.started_at),
     });
 
+    console.log(log);
+
     // return promise resolve/reject
     return log.status === "PASS" ? Promise.resolve(log) : Promise.reject(log);
 };
