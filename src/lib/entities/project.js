@@ -1,5 +1,6 @@
 const AWS = require("aws-sdk"),
-    { v4: uuid } = require("uuid");
+    { v4: uuid } = require("uuid"),
+    { encrypt, decrypt } = require("../utility/crypto");
 
 AWS.config.update({
     accessKeyId: process.env.AWS_KEY,
@@ -9,8 +10,49 @@ AWS.config.update({
 const ddb = new AWS.DynamoDB();
 
 /**
+ *  Project Create - requires  data.name
+ * 	resolves project object containing id and created_at
+ */
+module.exports.create = async (data) => {
+    return new Promise((resolve, reject) => {
+        // generate id
+        const project_id = uuid();
+        // assign default values
+        Object.assign(data, {
+            entity: "project",
+            id: project_id,
+            created_at: Math.floor(+new Date() / 1000),
+            created_by: data.created_by || "api",
+            variables: encrypt(
+                JSON.stringify(data.variables || {}),
+                project_id.replace(/-/g, "") // remove hyphens from ID
+            ),
+            notifications: data.notifications || {},
+            tests_count: 0,
+        });
+
+        // write to DB
+        ddb.putItem({
+            TableName: process.env.DDB_TABLE,
+            Item: AWS.DynamoDB.Converter.marshall(data),
+        })
+            .promise()
+            .then(() =>
+                resolve({
+                    id: project_id,
+                    created_at: data.created_at,
+                })
+            )
+            .catch((err) => {
+                console.log(err);
+                reject(err.message);
+            });
+    });
+};
+
+/**
  * 	Project Get
- * 	retrieve the project data from DB
+ * 	resolves the project object
  */
 
 module.exports.get = async (id) => {
@@ -33,39 +75,6 @@ module.exports.get = async (id) => {
                 reject("Project not accessible.");
             })
             .catch((err) => reject(err.message));
-    });
-};
-
-/**
- *  Project Create - requires  data.name
- * 	returns project object
- */
-module.exports.create = async (data) => {
-    return new Promise((resolve, reject) => {
-        // assign default values
-        Object.assign(data, {
-            entity: "project",
-            id: uuid(),
-            // name: 'Project name',
-            created_at: Math.floor(+new Date() / 1000),
-            // variables: {},
-            // notifications: {},
-            tests_count: 0,
-        });
-
-        console.log(data);
-
-        // write to DB
-        ddb.putItem({
-            TableName: process.env.DDB_TABLE,
-            Item: AWS.DynamoDB.Converter.marshall(data),
-        })
-            .promise()
-            .then(() => resolve(data))
-            .catch((err) => {
-                console.log(err);
-                reject(err.message);
-            });
     });
 };
 
@@ -123,27 +132,40 @@ module.exports.list = async (limit = -1) =>
  */
 module.exports.update = async (project_id, data, silent = false) =>
     new Promise((resolve, reject) => {
-        // init empty stuff here
-        let ean = {}; // expression attribute names
-        let eav = {}; // expression attribute values
-        let uexpr = []; // update expr arr
-
-        // loop obj keys
-        Object.keys(data).forEach((key) => {
-            // exclude the key from attributes
-            if (key != "entity" && key != "id") {
-                ean["#" + key] = key.toString();
-                eav[":" + key] = data[key];
-                uexpr.push("#" + key + "=:" + key);
-            }
+        // remove protected keys from data
+        ["entity", "id", "created_by", "created_at"].forEach((key) => {
+            delete data[key];
         });
 
-        // add updated
+        // init empty stuff here
+        const ean = {}, // expression attribute names
+            eav = {}, // expression attribute values
+            uexpr = []; // update expr arr
+
+        // add updated_at flag
         if (!silent) {
             Object.assign(data, {
                 updated_at: Math.floor(+new Date() / 1000),
+                updated_by: data.updated_by || "api",
             });
         }
+
+        // if data contains variables, encrypt
+        if (typeof data.variables === "object") {
+            Object.assign(data, {
+                variables: encrypt(
+                    JSON.stringify(data.variables),
+                    project_id.replace(/-/g, "") // remove hyphens
+                ),
+            });
+        }
+
+        // loop obj keys an prepare Expression attr names & values + update expression
+        Object.keys(data).forEach((key) => {
+            ean["#" + key] = key.toString();
+            eav[":" + key] = data[key];
+            uexpr.push("#" + key + "=:" + key);
+        });
 
         // update db
         ddb.updateItem({
@@ -164,7 +186,7 @@ module.exports.update = async (project_id, data, silent = false) =>
 /**
  * Project delete
  * requires project ID
- * returns true or error
+ * resolves true or error
  */
 
 module.exports.delete = async (id) => {
@@ -184,3 +206,11 @@ module.exports.delete = async (id) => {
             .catch((err) => reject(err.message));
     });
 };
+
+/**
+ * Project decrypt variables
+ * requires project ID & variables hash
+ * resolves decoded object
+ */
+module.exports.decryptVariables = (project_id, hash) =>
+    decrypt(hash, project_id.replace(/-/g, ""));

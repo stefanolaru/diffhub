@@ -43,6 +43,11 @@ module.exports.create = async (test_id, trigger) =>
  */
 module.exports.update = async (data) =>
     new Promise((resolve, reject) => {
+        // remove protected keys from data
+        ["entity", "id", "created_at"].forEach((key) => {
+            delete data[key];
+        });
+
         // init empty stuff here
         let ean = {}; // expression attribute names
         let eav = {}; // expression attribute values
@@ -50,12 +55,9 @@ module.exports.update = async (data) =>
 
         // loop obj keys
         Object.keys(data).forEach((key) => {
-            // exclude the key from attributes
-            if (key != "entity" && key != "id") {
-                ean["#" + key] = key.toString();
-                eav[":" + key] = data[key];
-                uexpr.push("#" + key + "=:" + key);
-            }
+            ean["#" + key] = key.toString();
+            eav[":" + key] = data[key];
+            uexpr.push("#" + key + "=:" + key);
         });
 
         // update db

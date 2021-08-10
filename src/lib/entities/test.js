@@ -12,7 +12,7 @@ const ddb = new AWS.DynamoDB(),
 
 /**
  *  Test Create - requires project_id
- * 	returns project object
+ * 	returns test object containing id & created_at
  */
 module.exports.create = async (data) => {
     return new Promise((resolve, reject) => {
@@ -25,6 +25,7 @@ module.exports.create = async (data) => {
             project_id: data.project_id,
             test_pk: "test-" + data.project_id,
             created_at: Math.floor(+new Date() / 1000),
+            created_by: data.created_by || "api",
             trigger: data.trigger || "manual",
             runs_count: 0,
         });
@@ -50,7 +51,12 @@ module.exports.create = async (data) => {
                     return Promise.resolve(false);
                 }
             })
-            .then((res) => resolve(data))
+            .then(() =>
+                resolve({
+                    id: data.id,
+                    created_at: data.created_at,
+                })
+            )
             .catch((err) => {
                 console.log(err);
                 reject(err.message);
@@ -153,27 +159,29 @@ module.exports.list = async (project_id = null, limit = -1) =>
  */
 module.exports.update = async (test_id, data, silent = false) =>
     new Promise((resolve, reject) => {
+        // remove protected keys from data
+        ["entity", "id", "created_by", "created_at"].forEach((key) => {
+            delete data[key];
+        });
         // init empty stuff here
         let ean = {}; // expression attribute names
         let eav = {}; // expression attribute values
         let uexpr = []; // update expr arr
 
-        // loop obj keys
-        Object.keys(data).forEach((key) => {
-            // exclude the key from attributes
-            if (key != "entity" && key != "id") {
-                ean["#" + key] = key.toString();
-                eav[":" + key] = data[key];
-                uexpr.push("#" + key + "=:" + key);
-            }
-        });
-
         // add updated
         if (!silent) {
             Object.assign(data, {
                 updated_at: Math.floor(+new Date() / 1000),
+                updated_by: data.updated_by || "api",
             });
         }
+
+        // loop obj keys
+        Object.keys(data).forEach((key) => {
+            ean["#" + key] = key.toString();
+            eav[":" + key] = data[key];
+            uexpr.push("#" + key + "=:" + key);
+        });
 
         // update db
         ddb.updateItem({
