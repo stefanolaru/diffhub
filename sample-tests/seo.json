@@ -1,0 +1,46 @@
+{
+    "type": "browser",
+    "name": "Basic SEO Test",
+    "description": "checks for title, meta description and h1 to be present & not empty",
+    "steps": [
+        {
+            "action": "navigate",
+            "url": "{{base_url}}"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "status",
+            "matcher": "toBe",
+            "value": 200
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.content-type",
+            "matcher": "toContain",
+            "value": "text/html"
+        },
+        {
+            "action": "expect",
+            "context": "document",
+            "subject": ["title", "innerText"],
+            "matcher": "not.toBe",
+            "value": ""
+        },
+        {
+            "action": "expect",
+            "context": "document",
+            "subject": ["meta[name='description']", "getAttribute", "content"],
+            "matcher": "not.toBe",
+            "value": ""
+        },
+        {
+            "action": "expect",
+            "context": "document",
+            "subject": ["h1", "innerText"],
+            "matcher": "not.toBe",
+            "value": ""
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "type": "basic",
+    "name": "Uptime Monitor (website)",
+    "description": "checks for 200 status & specific content type header",
+    "steps": [
+        {
+            "action": "navigate",
+            "url": "{{base_url}}"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "status",
+            "matcher": "toBe",
+            "value": 200
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.content-type",
+            "matcher": "toContain",
+            "value": "text/html"
+        }
+    ]
+}

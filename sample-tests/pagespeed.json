@@ -1,0 +1,37 @@
+{
+    "type": "basic",
+    "name": "PageSpeed Test",
+    "description": "checks for first contentful & largest contentful paint to be FAST",
+    "steps": [
+        {
+            "action": "navigate",
+            "url": "https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
+            "params": {
+                "url": "{{base_url}}",
+                "key": "{{google_api_key}}"
+            },
+            "timeout": 20000
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "status",
+            "matcher": "toBe",
+            "value": 200
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "data.loadingExperience.metrics.FIRST_CONTENTFUL_PAINT_MS.category",
+            "matcher": "toBe",
+            "value": "FAST"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "data.loadingExperience.metrics.LARGEST_CONTENTFUL_PAINT_MS.category",
+            "matcher": "toBe",
+            "value": "FAST"
+        }
+    ]
+}
