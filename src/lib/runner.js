@@ -1,5 +1,5 @@
 const expect = require("expect"),
-    matchers = require("../lib/matchers");
+    matchers = require("../lib/utility/matchers");
 
 expect.extend(matchers);
 
