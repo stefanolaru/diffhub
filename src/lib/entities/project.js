@@ -23,10 +23,7 @@ module.exports.create = async (data) => {
             id: project_id,
             created_at: Math.floor(+new Date() / 1000),
             created_by: data.created_by || "api",
-            variables: encrypt(
-                JSON.stringify(data.variables || {}),
-                project_id.replace(/-/g, "") // remove hyphens from ID
-            ),
+            variables: encryptVars(data.variables || {}, project_id),
             notifications: data.notifications || {},
             tests_count: 0,
         });
@@ -153,10 +150,7 @@ module.exports.update = async (project_id, data, silent = false) =>
         // if data contains variables, encrypt
         if (typeof data.variables === "object") {
             Object.assign(data, {
-                variables: encrypt(
-                    JSON.stringify(data.variables),
-                    project_id.replace(/-/g, "") // remove hyphens
-                ),
+                variables: encryptVars(data.variables, project_id),
             });
         }
 
@@ -208,9 +202,19 @@ module.exports.delete = async (id) => {
 };
 
 /**
+ * Project encrypt variables
+ * requires project ID & variables object
+ * returns encoded hash
+ */
+const encryptVars = (variables, project_id) =>
+    encrypt(
+        JSON.stringify(variables),
+        project_id.replace(/-/g, "") // remove hyphens from ID
+    );
+/**
  * Project decrypt variables
  * requires project ID & variables hash
  * resolves decoded object
  */
-module.exports.decryptVariables = (project_id, hash) =>
-    decrypt(hash, project_id.replace(/-/g, ""));
+module.exports.decryptVars = (hash, project_id) =>
+    JSON.parse(decrypt(hash, project_id.replace(/-/g, "")));

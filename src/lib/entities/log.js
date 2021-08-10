@@ -41,7 +41,7 @@ module.exports.create = async (test_id, trigger) =>
  * 	Log Update
  * 	retuns true or error
  */
-module.exports.update = async (data) =>
+module.exports.update = async (log_id, data) =>
     new Promise((resolve, reject) => {
         // remove protected keys from data
         ["entity", "id", "created_at"].forEach((key) => {
@@ -65,7 +65,7 @@ module.exports.update = async (data) =>
             TableName: process.env.DDB_TABLE,
             Key: AWS.DynamoDB.Converter.marshall({
                 entity: "log",
-                id: data.id,
+                id: log_id,
             }),
             ExpressionAttributeNames: ean,
             ExpressionAttributeValues: AWS.DynamoDB.Converter.marshall(eav),
