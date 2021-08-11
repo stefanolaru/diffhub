@@ -6,6 +6,8 @@
     "scripts": {
         "start": "sls offline --apiKey=local --stage=dev",
         "test": "jest --runInBand",
+        "basic": "npm test -- -t 'Run Basic Test'",
+        "browser": "npm test -- -t 'Run Browser Test'",
         "deploy": "sls deploy --stage=prod"
     },
     "repository": {
