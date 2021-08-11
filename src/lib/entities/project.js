@@ -211,6 +211,7 @@ const encryptVars = (variables, project_id) =>
         JSON.stringify(variables),
         project_id.replace(/-/g, "") // remove hyphens from ID
     );
+module.exports.encryptVars = encryptVars;
 /**
  * Project decrypt variables
  * requires project ID & variables hash
