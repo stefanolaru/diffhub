@@ -45,7 +45,7 @@ class TestRunner {
             case "document":
                 context = this.page;
                 break;
-            case "metrix":
+            case "metrics":
                 context = this.metrics;
                 break;
             case "resource":

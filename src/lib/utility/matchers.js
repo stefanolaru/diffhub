@@ -1,7 +1,3 @@
-const expect = require("expect");
-
-// expect(selector).toMatch(context, val)
-
 async function toBePresent(selector, page, is_visible = false) {
     // console.log(selector);
     const pass = await page.evaluate(
