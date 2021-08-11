@@ -1,2 +1,3 @@
-# Initial page
+# DiffHub
 
+Welcome to DiffHub docs.
