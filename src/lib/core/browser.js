@@ -33,7 +33,7 @@ class browserRunner extends testRunner {
             (Timestamp - this.metrics.start_time) * 1000
         );
         //
-        console.log(this.metrics);
+        // console.log(this.metrics);
         await this.browser.close();
     }
     //

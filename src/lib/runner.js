@@ -18,10 +18,7 @@ module.exports.run = async (data, log, type) => {
     try {
         // open the browser, if it's a browser test
         if (type === "browser") {
-            await runner
-                .browserOpen()
-                .then()
-                .catch((err) => err);
+            await runner.browserOpen();
         }
 
         // failed flag
@@ -35,8 +32,6 @@ module.exports.run = async (data, log, type) => {
                 failed = await runner[step.action](step)
                     .then((r) => false)
                     .catch((err) => {
-                        // log the err for the CloudWatch logs
-                        console.log(err);
                         //
                         return true;
                     });
@@ -65,7 +60,7 @@ module.exports.run = async (data, log, type) => {
         //
     } catch (e) {
         // something failed
-        console.log(e);
+        console.log(e.message);
     }
 
     // add duration & final status to the output
