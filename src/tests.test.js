@@ -1,15 +1,8 @@
 const yaml = require("js-yaml"),
     fs = require("fs"),
     axios = require("axios"),
-    // entities
-    Test = require("./lib/entities/test"),
-    Project = require("./lib/entities/project"),
-    // test stuff
-    basicRunner = require("./lib/runner-basic"),
-    browserRunner = require("./lib/runner-browser"),
     // mockdata
-    basic_test_data = require("../sample-tests/uptime.json"),
-    browser_test_data = require("../sample-tests/seo.json");
+    basic_test_data = require("../sample-tests/uptime.json");
 
 var project = null,
     test_id = null,
@@ -143,32 +136,4 @@ describe("Tests CRUD API test (w/ API key)", () => {
         // set back to null
         test_id = null;
     });
-});
-
-describe("Test Runners", () => {
-    //
-    var basic_data = Test.replaceVars(basic_test_data, project_vars);
-    var browser_data = Test.replaceVars(browser_test_data, project_vars);
-
-    it("Should run a basic test and return a log object", async () => {
-        // console.log(test_data);
-        const output = await basicRunner
-            .run(basic_data, {})
-            .then()
-            .catch((err) => err);
-
-        expect(output.status).toBeDefined();
-    }, 30000);
-
-    it("Should run a browser test and return a log object", async () => {
-        // console.log(test_data);
-        const output = await browserRunner
-            .run(browser_data, {})
-            .then()
-            .catch((err) => err);
-
-        // console.log(output);
-
-        expect(output.status).toBeDefined();
-    }, 60000);
 });
