@@ -15,65 +15,64 @@ module.exports.run = async (data, log, type) => {
         steps: [], // and empty steps
     });
 
-    // open the browser, if it's a browser test
-    if (type === "browser") {
-        await runner
-            .browserOpen()
-            .then()
-            .catch((err) => err);
-    }
+    try {
+        // open the browser, if it's a browser test
+        if (type === "browser") {
+            await runner
+                .browserOpen()
+                .then()
+                .catch((err) => err);
+        }
 
-    //
-    if (runner.browser !== null) {
+        // failed flag
+        let failed = false;
+
         // loop test steps
         while (data.steps.length) {
             const step = data.steps.shift();
             // console.log(step);
-            try {
-                await runner[step.action](step)
-                    .then((r) => {
-                        // console.log(r);
-                        // add passed step to the output
-                        log.steps.push(
-                            Object.assign(step, {
-                                status: "PASS",
-                            })
-                        );
-                    })
+            if (typeof runner[step.action] !== "undefined") {
+                failed = await runner[step.action](step)
+                    .then((r) => false)
                     .catch((err) => {
-                        // add failed step to the output
-                        log.steps.push(
-                            Object.assign(step, {
-                                status: "FAIL",
-                            })
-                        );
                         // log the err for the CloudWatch logs
                         console.log(err);
+                        //
+                        return true;
                     });
-            } catch (e) {
-                // log the err for the CloudWatch logs
-                console.log(e);
-                // update the output with the overall status
+            } else {
+                // set failed flag
+                failed = true;
             }
+
+            // add the step to the log steps
+            log.steps.push(
+                Object.assign(step, {
+                    status: failed === true ? "FAIL" : "PASS",
+                })
+            );
+
             // stop at first test failure, break the loop
-            if (log.status === "FAIL") {
+            if (failed) {
                 break;
             }
         }
-    }
 
-    // close the browser, if instance exists
-    if (type === "browser" && runner.browser !== null) {
-        await runner.browserClose();
+        // close the browser, if instance exists
+        if (type === "browser" && runner.browser !== null) {
+            await runner.browserClose();
+        }
+        //
+    } catch (e) {
+        // something failed
+        console.log(e);
     }
-
-    // console.log(runner.metrics);
-    // console.log(runner.response);
 
     // add duration & final status to the output
     Object.assign(log, {
         // if no steps logged or any step failed, it's a fail
         status:
+            !log.steps ||
             !log.steps.length ||
             log.steps.findIndex((x) => x.status === "FAIL") > -1
                 ? "FAIL"
