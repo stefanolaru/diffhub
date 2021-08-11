@@ -1,94 +1,88 @@
-const expect = require("expect"),
-    matchers = require("../lib/utility/matchers");
+const browserRunner = require("./core/browser"),
+    basicRunner = require("./core/basic");
+/**
+ * requires test data & log
+ * returns the log updated with the test results
+ */
 
-expect.extend(matchers);
+module.exports.run = async (data, log, type) => {
+    // instantiate the test runner
+    const runner = type === "browser" ? new browserRunner() : new basicRunner();
 
-class TestRunner {
-    constructor() {
-        // browser & page
-        this.browser = null;
-        this.page = null;
+    // add start time to the log
+    Object.assign(log, {
+        started_at: Date.now(),
+        steps: [], // and empty steps
+    });
 
-        // the page response
-        this.response = null;
-
-        // browser console
-        this.console = {
-            logs: [],
-            warnings: [],
-            errors: [],
-        };
-
-        // page metrics & resources
-        this.metrics = {
-            start_time: null,
-            duration: null,
-            pagesize: 0,
-        };
-        this.resources = [];
+    // open the browser, if it's a browser test
+    if (type === "browser") {
+        await runner
+            .browserOpen()
+            .then()
+            .catch((err) => err);
     }
-    // Jest expect handles the assertions
-    async expect(step) {
-        // destructure assertion components
-        let { subject, matcher, value } = step;
 
-        // if no subject or matcher, ignore assertion, resolve early
-        if (!subject || !matcher) {
-            return Promise.resolve();
-        }
-
-        // extract the subject path from response
-        // works for dotted notation i.e. response.headers.content-type
-        let context = this.response;
-
-        switch (step.context) {
-            case "document":
-                context = this.page;
-                break;
-            case "metrics":
-                context = this.metrics;
-                break;
-            case "resource":
-                context = this.resources;
-                break;
-        }
-
-        if (step.context !== "document") {
-            // split object notation
-            subject = subject.split(".").reduce((o, i) => o[i], context);
-        } else {
-            subject = await this.getSubject(subject);
-        }
-
-        return new Promise((resolve, reject) => {
-            // run the Jest test
-            // console.log(subject, matcher, value);
+    //
+    if (runner.browser !== null) {
+        // loop test steps
+        while (data.steps.length) {
+            const step = data.steps.shift();
+            // console.log(step);
             try {
-                // check for negation
-                if (matcher.startsWith("not.")) {
-                    // remove the not.
-                    matcher = matcher.replace("not.", "");
-                    // pass the context for custom matchers
-                    if (matchers[matcher]) {
-                        expect(subject).not[matcher](context, value);
-                    } else {
-                        expect(subject).not[matcher](value);
-                    }
-                } else {
-                    if (matchers[matcher]) {
-                        expect(subject)[matcher](context, value);
-                    } else {
-                        expect(subject)[matcher](value);
-                    }
-                }
-                // resolve
-                resolve();
+                await runner[step.action](step)
+                    .then((r) => {
+                        // console.log(r);
+                        // add passed step to the output
+                        log.steps.push(
+                            Object.assign(step, {
+                                status: "PASS",
+                            })
+                        );
+                    })
+                    .catch((err) => {
+                        // add failed step to the output
+                        log.steps.push(
+                            Object.assign(step, {
+                                status: "FAIL",
+                            })
+                        );
+                        // log the err for the CloudWatch logs
+                        console.log(err);
+                    });
             } catch (e) {
-                // reject
-                reject(e.message);
+                // log the err for the CloudWatch logs
+                console.log(e);
+                // update the output with the overall status
             }
-        });
+            // stop at first test failure, break the loop
+            if (log.status === "FAIL") {
+                break;
+            }
+        }
     }
-}
 
-module.exports = TestRunner;
+    // close the browser, if instance exists
+    if (type === "browser" && runner.browser !== null) {
+        await runner.browserClose();
+    }
+
+    // console.log(runner.metrics);
+    // console.log(runner.response);
+
+    // add duration & final status to the output
+    Object.assign(log, {
+        // if no steps logged or any step failed, it's a fail
+        status:
+            !log.steps.length ||
+            log.steps.findIndex((x) => x.status === "FAIL") > -1
+                ? "FAIL"
+                : "PASS",
+        duration: Math.round(Date.now() - log.started_at),
+        // set ts in seconds
+        started_at: Math.round(log.started_at / 1000),
+    });
+
+    // return promise resolve/reject
+    return log.status === "PASS" ? Promise.resolve(log) : Promise.reject(log);
+};

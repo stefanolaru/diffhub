@@ -1,95 +1,7 @@
 const chromium = require("chrome-aws-lambda"),
-    TestRunner = require("./runner");
-/**
- * Browser test run, does opens a browser
- * requires test data & log
- * returns the log updated with the test results
- */
+    testRunner = require("./runner");
 
-module.exports.run = async (data, log) => {
-    // instantiate the test runner
-    const runner = new browserRunner();
-
-    // add start time to the log
-    Object.assign(log, {
-        started_at: Date.now(),
-        steps: [], // and empty steps
-    });
-
-    // open the browser
-    await runner
-        .browserOpen()
-        .then()
-        .catch((err) => err);
-
-    //
-    if (runner.browser !== null) {
-        // loop test steps
-        while (data.steps.length) {
-            const step = data.steps.shift();
-            // console.log(step);
-            try {
-                await runner[step.action](step)
-                    .then((r) => {
-                        // console.log(r);
-                        // add passed step to the output
-                        log.steps.push(
-                            Object.assign(step, {
-                                status: "PASS",
-                            })
-                        );
-                    })
-                    .catch((err) => {
-                        // add failed step to the output
-                        log.steps.push(
-                            Object.assign(step, {
-                                status: "FAIL",
-                            })
-                        );
-                        // log the err for the CloudWatch logs
-                        console.log(err);
-                        // update the output with the overall status
-                        Object.assign(log, {
-                            status: "FAIL",
-                        });
-                    });
-            } catch (e) {
-                // log the err for the CloudWatch logs
-                console.log(e);
-                // update the output with the overall status
-                Object.assign(log, {
-                    status: "FAIL",
-                });
-            }
-            // stop at first test failure, break the loop
-            if (log.status === "FAIL") {
-                break;
-            }
-        }
-    }
-
-    // close the browser, if instance exists
-    if (runner.browser !== null) {
-        await runner.browserClose();
-    }
-
-    // console.log(runner.metrics);
-    // console.log(runner.response);
-    // console.log(log);
-
-    // add duration & final status to the output
-    Object.assign(log, {
-        status: log.status !== "FAIL" ? "PASS" : "FAIL", // if it didn't fail, it's a PASS, doh!
-        duration: Math.round(Date.now() - log.started_at),
-    });
-
-    console.log(log);
-
-    // return promise resolve/reject
-    return log.status === "PASS" ? Promise.resolve(log) : Promise.reject(log);
-};
-
-class browserRunner extends TestRunner {
+class browserRunner extends testRunner {
     async browserOpen() {
         try {
             // start browser
@@ -305,3 +217,5 @@ class browserRunner extends TestRunner {
         return r;
     }
 }
+
+module.exports = browserRunner;
