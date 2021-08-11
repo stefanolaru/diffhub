@@ -1,16 +1,21 @@
 const yaml = require("js-yaml"),
     fs = require("fs"),
     axios = require("axios"),
-    basic_test_data = require("../mockdata/test-basic.json"),
-    browser_test_data = require("../mockdata/test-browser.json"),
-    project_vars = require("../mockdata/project-variables.json"),
-    // test stuff
+    // entities
     Test = require("./lib/entities/test"),
+    Project = require("./lib/entities/project"),
+    // test stuff
     basicRunner = require("./lib/runner-basic"),
-    browserRunner = require("./lib/runner-browser");
+    browserRunner = require("./lib/runner-browser"),
+    // mockdata
+    basic_test_data = require("../sample-tests/uptime.json"),
+    browser_test_data = require("../sample-tests/seo.json");
 
 var project = null,
-    test_id = null;
+    test_id = null,
+    project_vars = {
+        base_url: "https://www.crafty.ro",
+    };
 
 // set env
 beforeAll(async () => {
@@ -41,6 +46,7 @@ beforeAll(async () => {
         )
         .then((res) => res.data)
         .catch((err) => null);
+
     // log into console
     console.log("Project ID:", project.id);
 });
@@ -143,12 +149,6 @@ describe("Test Runners", () => {
     //
     var basic_data = Test.replaceVars(basic_test_data, project_vars);
     var browser_data = Test.replaceVars(browser_test_data, project_vars);
-    // replace project vars
-    it("Should replace the project variables", () => {
-        // check if successfully decodes {{base_url}}
-        expect(basic_data.steps[0].url).toBe(project_vars.base_url);
-        expect(browser_data.steps[0].url).toBe(project_vars.base_url);
-    });
 
     it("Should run a basic test and return a log object", async () => {
         // console.log(test_data);
@@ -158,7 +158,7 @@ describe("Test Runners", () => {
             .catch((err) => err);
 
         expect(output.status).toBeDefined();
-    }, 10000);
+    }, 30000);
 
     it("Should run a browser test and return a log object", async () => {
         // console.log(test_data);
