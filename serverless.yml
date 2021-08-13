@@ -24,6 +24,14 @@ provider:
     logRetentionInDays: 7 # no of days to retain the Lambda logs in CloudWatch
 
 functions:
+    # lambda authorizer
+    authorizer:
+        memorySize: 128
+        handler: src/authorizer.handler
+        environment:
+            #DDB_TABLE: !Ref ddbTable
+            AWS_KEY: !Ref accessKeys
+            AWS_SECRET: !GetAtt accessKeys.SecretAccessKey
     # trigger test on schedule or manually
     trigger:
         memorySize: 128
@@ -41,7 +49,9 @@ functions:
                   path: /run/{id+}
                   method: GET
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
     # run basic test, can only be invoked directly
     runbasic:
         memorySize: 128
@@ -82,33 +92,41 @@ functions:
                   path: /projects
                   method: POST
                   cors: true
-                  private: true
-                  #   authorizer:
-                  #       arn: !GetAtt userPool.Arn
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # update
             - http:
                   path: /projects/{id+}
                   method: PATCH
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # list
             - http:
                   path: /projects
                   method: GET
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # view
             - http:
                   path: /projects/{id+}
                   method: GET
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # delete
             - http:
                   path: /projects/{id+}
                   method: DELETE
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
 
     # tests CRUD
     tests:
@@ -127,31 +145,41 @@ functions:
                   path: /tests
                   method: POST
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # update
             - http:
                   path: /tests/{id+}
                   method: PATCH
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # list
             - http:
                   path: /tests
                   method: GET
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # view
             - http:
                   path: /tests/{id+}
                   method: GET
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
             # delete
             - http:
                   path: /tests/{id+}
                   method: DELETE
                   cors: true
-                  private: true
+                  authorizer:
+                      type: TOKEN
+                      authorizerId: !Ref apiAuthorizer
 
 package:
     # exclude files from the package
@@ -265,6 +293,36 @@ resources: # CloudFormation template syntax
             Properties:
                 ClientName: ${self:custom.resourceName}
                 GenerateSecret: false
+                PreventUserExistenceErrors: ENABLED
                 UserPoolId: !Ref userPool
                 ExplicitAuthFlows:
                     - ADMIN_NO_SRP_AUTH
+
+        # authorizer permission to invoke lambda
+        apiAuthorizerPermission:
+            Type: AWS::Lambda::Permission
+            Properties:
+                FunctionName:
+                    Fn::GetAtt: AuthorizerLambdaFunction.Arn
+                Action: lambda:InvokeFunction
+                Principal: !Join
+                    - ""
+                    - - "apigateway."
+                      - !Ref "AWS::URLSuffix"
+        # api gateway authorizer
+        apiAuthorizer:
+            Type: AWS::ApiGateway::Authorizer
+            Properties:
+                IdentitySource: method.request.header.Authorization
+                AuthorizerUri: !Join
+                    - ""
+                    - - "arn:aws:apigateway:"
+                      - !Ref "AWS::Region"
+                      - ":lambda:path/2015-03-31/functions/"
+                      - !GetAtt
+                        - AuthorizerLambdaFunction
+                        - Arn
+                      - "/invocations"
+                Type: TOKEN
+                Name: ${self:custom.authorizerName}-Authorizer
+                RestApiId: !Ref ApiGatewayRestApi
