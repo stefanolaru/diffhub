@@ -5,6 +5,6 @@
 -   [Installation](README.md)
 -   [API Reference](api.md)
     -   [Projects](api.md)
-    -   [Tests](api.md)
     -   [Suites](api.md)
+    -   [Tests](api.md)
     -   [Logs](api.md)
