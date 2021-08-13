@@ -4,6 +4,7 @@ custom:
     defaultStage: dev
     #environment: ${file(env.yml):${self:provider.stage}, file(env.yml):default}
     resourceName: ${self:service}_${self:provider.stage}
+    authorizerName: "cognitoAuth"
 
 provider:
     name: aws
@@ -12,12 +13,14 @@ provider:
     # stage
     stage: ${opt:stage, self:custom.defaultStage}
     runtime: nodejs14.x
+    lambdaHashingVersion: "20201221"
     tags:
         project: ${self:service}
     environment:
         RESOURCE_PREFIX: ${self:custom.resourceName}
-    apiKeys:
-        - ${self:service}_${self:provider.stage}_apikey
+    apiGateway:
+        apiKeys:
+            - ${self:service}_${self:provider.stage}_apikey
     logRetentionInDays: 7 # no of days to retain the Lambda logs in CloudWatch
 
 functions:
@@ -80,6 +83,8 @@ functions:
                   method: POST
                   cors: true
                   private: true
+                  #   authorizer:
+                  #       arn: !GetAtt userPool.Arn
             # update
             - http:
                   path: /projects/{id+}
@@ -150,14 +155,14 @@ functions:
 
 package:
     # exclude files from the package
-    exclude:
-        - sample-env.yml
-        - package.json
-        - package-lock.json
-        - README.md
-        - LICENSE
-        - email/**
-        - layers/**
+    patterns:
+        - "!sample-env.yml"
+        - "!package.json"
+        - "!package-lock.json"
+        - "!README.md"
+        - "!LICENSE"
+        - "!email/**"
+        - "!layers/**"
 
 plugins:
     - serverless-offline
@@ -227,6 +232,7 @@ resources: # CloudFormation template syntax
                                     - "dynamodb:*"
                                     - "events:*"
                                     - "lambda:*"
+                                    - "cognito:*"
                                 Resource: "*"
 
         # create the access keys for the IAM user
@@ -244,3 +250,21 @@ resources: # CloudFormation template syntax
                     SubjectPart: "{{subject}}"
                     TextPart: ${file(email/notification.txt)}
                     HtmlPart: ${file(email/notification.html)}
+        # create the cognito user pool
+        userPool:
+            Type: AWS::Cognito::UserPool
+            Properties:
+                AdminCreateUserConfig:
+                    AllowAdminCreateUserOnly: true
+                UsernameAttributes:
+                    - email
+                UserPoolName: ${self:custom.resourceName}
+        # create the cognito pool client
+        userPoolClient:
+            Type: AWS::Cognito::UserPoolClient
+            Properties:
+                ClientName: ${self:custom.resourceName}
+                GenerateSecret: false
+                UserPoolId: !Ref userPool
+                ExplicitAuthFlows:
+                    - ADMIN_NO_SRP_AUTH
