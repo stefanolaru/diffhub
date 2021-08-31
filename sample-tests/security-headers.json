@@ -1,0 +1,56 @@
+{
+    "type": "basic",
+    "name": "Check HTTP security headers",
+    "description": "checks for essential security headers",
+    "steps": [
+        {
+            "action": "navigate",
+            "url": "{{base_url}}"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "status",
+            "matcher": "toBe",
+            "value": 200
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.x-frame-options",
+            "matcher": "toBeDefined"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.x-content-type-options",
+            "matcher": "toBe",
+            "value": "nosniff"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.content-security-policy",
+            "matcher": "toBeDefined"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.strict-transport-security",
+            "matcher": "toBeDefined"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.x-powered-by",
+            "matcher": "toBeUndefined"
+        },
+        {
+            "action": "expect",
+            "context": "response",
+            "subject": "headers.server",
+            "matcher": "not.toMatch",
+            "value": "/(.*)"
+        }
+    ]
+}
